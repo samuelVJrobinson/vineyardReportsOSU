@@ -1,0 +1,44 @@
+% margin=1cm,top=5cm,headheight=3cm,headsep=1cm
+
+% \AtBeginDocument{\let\maketitle\relax} %Suppress title page
+\usepackage{xcolor}
+\definecolor{osuRed}{RGB}{215, 63, 9} %OSU red colour
+
+\usepackage{setspace}
+\usepackage{multicol}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{} %Remove section names from header/footer
+% \fancyhead[R]{
+%   \begin{tcolorbox}[colback=ppsnBlue,halign=right,width=8cm]
+%   \LARGE
+%   \color{white}
+%   Grower Edition:\\Summer 2023 Update
+%   \end{tcolorbox}
+% }
+\renewcommand{\headrulewidth}{0pt}
+\usepackage{tcolorbox}
+\usepackage{pdfpages}
+%\usepackage{fontspec}
+% \setmainfont{Arial}
+\usepackage{tikzpagenodes}
+\usetikzlibrary{calc}
+\pagenumbering{gobble}
+
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage{xcolor}
+\usepackage{makecell} %Required for doing line breaks within a table
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}} %Change footnote marks to symbols rather than numbers
+
+\usepackage{sectsty} %Change font sizes of section titles
+\sectionfont{\fontsize{22}{15}\selectfont} %Change font size to 22
+
+\usepackage{tgheros}
+\fontfamily{qhv}\selectfont
+
