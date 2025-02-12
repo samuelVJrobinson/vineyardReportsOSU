@@ -1,68 +1,63 @@
-#ORGANIZE DATA FROM A. MELATHOPOLOUS AND MAKE FUNCTIONS
-
-# famGenPath:  #Bee genus-family lookup table - included in /data
-# plantListPath : './data/plant data/cleanedPlantList2024.csv' #List of plants from Oregon Flora
-# beeDataPath : './data/bee data/OBA_2017_2023_v16Oct24.csv' #Bee list from OBA
-# orCountyShpPath : Oregon county polygons - included in /data
-# orEcoregShpPath : Ecoregion county polygons - included in /data 
-# csvPaths =  Get paths to vineyard iNaturalist csvs
-# beeAbstractsPath = Bee/plant abstracts - included in /data
-## Writing (output) paths
-# vinePlDatAll = Output csv of all vineyard records
-# predictedBeesPath = Output csv of Predicted bees for each vineyard
-# dataStoragePath = Storage path for .Rdata file
-
-organizeData <- function(plantListPath, #List of plants from Oregon Flora
-                         beeDataPath, #Bee list from OBA
-                         orCountyShpPath = NULL, #Oregon county polygons
-                         orEcoregShpPath = NULL, #Ecoregion county polygons
-                         #Get paths to vineyard iNaturalist csvs
-                         csvPaths = NULL, #Gets list of csvs in "./data" folder
-                         beeAbstractsPath = NULL, #Bee abstracts
+#' @title Organize data
+#' @description Organize iNaturalist csv data from vineyards 
+#' @param plantListPath List of plants from Oregon Flora
+#' @param beeDataPath List of bee/plant interactions from OBA
+#' @param csvPaths Folder containing vineyard iNaturalist csv files 
+#' @param vinePlDatAll Output csv of all vineyard records. Skips writing if NULL
+#' @param predictedBeesPath Output csv of Predicted bees for each vineyard
+#' @param dataStoragePath Storage path for .Rdata file
+#' 
+#' @return Nothing - writes to dataStoragePath
+#' @export
+#'
+#' @examples
+organizeData <- function(plantListPath, 
+                         beeDataPath, 
+                         iNatFolder = NULL, 
                          vinePlDatAll = NULL,
-                         predictedBeesPath = NULL, #Predicted bees for each vineyard
+                         predictedBeesPath = NULL,
                          dataStoragePath = NULL
 ){
-  #Load packages -------------------------
+  
+  # Preamble ---------------------------
+  
+  ##Input arguments
+  # plantListPath : './data/plant data/cleanedPlantList2024.csv' #List of plants from Oregon Flora
+  # beeDataPath : './data/bee data/OBA_2017_2023_v16Oct24.csv' #Bee list from OBA
+  # iNatFolder =  Get paths to vineyard iNaturalist csvs
+  ## Writing (output) arguments
+  # vinePlDatAll = Output csv of all vineyard records
+  # predictedBeesPath = Output csv of Predicted bees for each vineyard
+  # dataStoragePath = Storage path for .Rdata file
+  
+  ## Included in /data:
+  # famGenPath:  #Bee genus-family lookup table - included in /data
+  # orCountyShpPath : Oregon county polygons - included in /data
+  # orEcoregShpPath : Ecoregion county polygons - included in /data 
+  # beeAbstractsPath = Bee/plant abstracts - included in /data
+  
   library(tidyverse)
   library(sf)
-  # remotes::install_github('samuelVJrobinson/SRtools') #Install SRtools from here
-  library(SRtools)
-  # library(vegan)
+  library(vegan)
   library(bipartite)
   
-  #Load and organize data ---------------------------
-  
-  # setwd("C:\\Users\\Samuel\\Desktop\\Bee friendly wine grape project")
-  # setwd('~/Projects/2024/OSU Vineyard Project/')
-  
-  
-  #Input paths
+  #Input paths from /data
   famGenPath <- './data/bee data/famGenLookup.csv' #Bee genus-family lookup table
-  plantListPath <- './data/plant data/cleanedPlantList2024.csv' #List of plants from Oregon Flora
-  beeDataPath <- './data/bee data/OBA_2017_2023_v16Oct24.csv' #Bee list from OBA
   orCountyShpPath <- "./data/shapefiles/orcntypoly.shp" #Oregon county polygons
   orEcoregShpPath <- "./data/shapefiles/or_eco_l3.shp" #Ecoregion county polygons
-  #Get paths to vineyard iNaturalist csvs
-  csvPaths <- list.files('./data/',full.names = TRUE, recursive = TRUE,pattern = '.csv') #Gets list of csvs in "./data" folder
-  csvPaths <- csvPaths[grepl('/vineyard records 202\\d/',csvPaths)] #Retrieves only csvs matching pathname "vineyard records 202x
-  helperFunctionPath <- './functions.R'
   beeAbstractsPath <- './data/bee data/Bee_Abstracts.csv' #Bee abstracts
-  #Writing (output) paths
-  vinePlDatAll <- './data/allVineyardRecords.csv'
-  predictedBeesPath <- './data/predictedVineyardBees.csv' #Predicted bees for each vineyard
-  dataStoragePath <- './data/allVineyardData2024.Rdata'
+  
+  #Get paths to vineyard iNaturalist csvs
+  csvPaths <- list.files(iNatFolder,full.names = TRUE, recursive = TRUE,pattern = '.csv') #Gets list of csvs in "./data" folder
+  
   # #Vineyard "highlights"
   # beePlantPairsPath <- './data/highlightBeesPlants_paired.csv' #Unique bee/plant pairs for each vineyard: bees/plants must be linked
   # beePlantPairsPath2 <- './data/highlightBeesPlants_unpaired.csv' #Unique bee/plant pairs for each vineyard: bees/plants don't have to be linked
   
-  source(helperFunctionPath) #Load helper functions
-  
   famGen <- read.csv(famGenPath) %>% rename(lookupFam=family) #Bee genus-family lookup table
   
-  #Load cleaned Oregon plant data
-  plantList <- read.csv(plantListPath,strip.white = TRUE) #Looks OK
-  # select(Scientific_name:Garden_type) %>%
+  # Load and clean up Oregon plant data -------------------------
+  plantList <- read.csv(plantListPath,strip.white = TRUE) 
   
   chooseThese <- grepl('(var|ssp)\\.',plantList$Scientific_name)
   if(any(chooseThese)){
@@ -115,7 +110,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
     pull(Scientific_name)
   
   
-  #Read in bee data
+  # Load and clean up bee data ------------------------------------
   beeData <- read.csv(beeDataPath,stringsAsFactors = FALSE,
                       strip.white = TRUE,na.strings=c('NA','')) %>% filter(!is.na(Genus)) %>%
     transmute(recordedBy=Collectors.1,sex=sex,foragePlant=Associated.plant,
@@ -182,7 +177,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
   #   distinct() %>% arrange(plantGenus,plantSpp) %>% 
   #   write.csv(.,file='./visitedPlants.csv',row.names = FALSE)
   
-  # Other spatial data
+  # Load spatial data ------------------------
   
   #Shapefiles of Oregon counties
   orCounties <- st_read(orCountyShpPath,quiet = TRUE) %>% #Read in county polygons
@@ -230,7 +225,8 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
                           common=c('Mining bees','Social bees','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
     mutate(plotLab=paste0(family,'\n(',common,')'))
   
-  #Read in all vineyard plant records
+  #Load and clean up iNaturalist records ------------------------
+  
   vinePlDat <- lapply(csvPaths,function(x){
     read.csv(x,strip.white = TRUE) %>% #Read in csvs
       select(latitude,longitude,scientific_name,common_name) %>% #Select relevant columns
@@ -254,23 +250,24 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
     vinePlDat <- vinePlDat %>% filter(!is.na(ecoreg))
   }
   
-  #Write to csv
-  vinePlDat %>% st_transform(4269) %>% 
-    mutate(lat=st_coordinates(.)[2],lon=st_coordinates(.)[1]) %>% 
-    st_drop_geometry() %>% 
-    write.csv(file = vinePlDatAll,row.names = FALSE)
+  if(!is.null(vinePlDatAll)){
+    #Write to single csv
+    vinePlDat %>% st_transform(4269) %>% 
+      mutate(lat=st_coordinates(.)[2],lon=st_coordinates(.)[1]) %>% 
+      st_drop_geometry() %>% 
+      write.csv(file = vinePlDatAll,row.names = FALSE)
+  }
   
-  
-  # Regional and vineyard-level networks ------------------------------------
+  # Make regional and vineyard-level networks ------------------------------------
   
   # Gets unique plant records and associated bee records from the 2024 bee data. Used to generate a list of "highlight" bees and plants for growers
   
-  #Create ecoregions-specific networks (all interactions from a given region)
-  getRegNtwks <- function(nm){ #Terrible variable scoping practice, but works
+  #Create ecoregions-specific networks (all interactions from a given region). Terrible variable scoping practice, but works. Should eventually turn into a stand-alone function. Could also make a general-purpose version that works with arbitrary subsets (would replace both getRegNtwks and getVyNtwks?)
+  getRegNtwks <- function(nm,bdat,pList){ 
     if(nm=='ALL'){ #Uses all of Oregon
-      d <- beeData %>% st_drop_geometry()
+      d <- bdat %>% st_drop_geometry()
     } else {
-      d <- beeData %>% filter(ecoreg==nm) %>% st_drop_geometry()  
+      d <- bdat %>% filter(ecoreg==nm) %>% st_drop_geometry()  
     }
     
     #dataframe: Bee spp -> flower spp
@@ -289,7 +286,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
     #matrix: Bee spp -> plant spp (all)
     ntwk_all <- d %>% filter(!is.na(species),!is.na(plantSpp)) %>%
       select(genSpp,foragePlant) %>% na.omit() %>%
-      left_join(select(plantList,Scientific_name,isWeedy,isNoxious,isNative),
+      left_join(select(pList,Scientific_name,isWeedy,isNoxious,isNative),
                 by = c('foragePlant'='Scientific_name')) %>%
       count(genSpp,foragePlant) %>%
       pivot_wider(names_from=foragePlant,values_from=n,values_fill = 0) %>%
@@ -298,7 +295,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
     #matrix: Bee spp -> plant spp (nonweedy natives only)  - recommended plant spp for growers
     ntwk_noWeed <- d %>% filter(!is.na(species),!is.na(plantSpp)) %>%
       select(genSpp,foragePlant) %>% na.omit() %>%
-      left_join(select(plantList,Scientific_name,isWeedy,isNoxious,isNative),
+      left_join(select(pList,Scientific_name,isWeedy,isNoxious,isNative),
                 by = c('foragePlant'='Scientific_name')) %>%
       filter(!is.na(isWeedy),!isNoxious,!isWeedy,isNative) %>%
       count(genSpp,foragePlant) %>%
@@ -319,10 +316,10 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
     #Temporary plant list with only genus-level info
-    plantList2 <- plantList %>% select(Scientific_name,isWeedy,isNoxious,isNative) %>% 
+    plantList2 <- pList %>% select(Scientific_name,isWeedy,isNoxious,isNative) %>% 
       mutate(Genus_name=gsub('\\s.*$','',Scientific_name)) %>% 
       group_by(Genus_name) %>% 
-      #Abraham's bargain: is there at least 1 nonweedy, nonnoxious, and native species?
+      #"Abraham's bargain": is there at least 1 nonweedy, nonnoxious, and native species?
       summarize(isNonWeedy=any(!isWeedy),isNonNoxious=any(!isNoxious),isNative=any(isNative))
     
     #matrix: Bee species -> plant genus (all) - Recommended plant species for growers
@@ -372,7 +369,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
       topGen <- NA
     } else {
       #Top plant genera (Chao1 richness from plant genus - bee spp network)
-      topGen <- estimateR(ntwk_genSpp_all) %>% t() %>% 
+      topGen <- vegan::estimateR(ntwk_genSpp_all) %>% t() %>% 
         data.frame() %>% 
         rownames_to_column('plantGen') %>%
         select(plantGen:S.chao1) %>% arrange(desc(S.chao1)) %>% 
@@ -387,45 +384,51 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
         mutate(quality=factor(quality,levels=c('super','good','poor')))
     }
     
+    #Output list
     return(list('sppList'=sppList,'genList'=genList,
                 'ntwk_all'=ntwk_all,'ntwk_noWeed'=ntwk_noWeed,
                 'ntwk_gen_all'=ntwk_gen_all,'ntwk_genSpp_all'=ntwk_genSpp_all,
                 'topSpp'=topSpp,'topGen'=topGen,'rareBees'=rareBees))
   }
   
-  # debugonce(getRegNtwks)
-  ecoRegNetworks <- lapply(c(orEcoReg$name,'ALL'),getRegNtwks) %>% set_names(c(orEcoReg$name,'ALL'))
+  #Assemble regional networks into a list
+  ecoRegNetworks <- lapply(c(orEcoReg$name,'ALL'),getRegNtwks,bdat=beeData,pList=plantList) %>% 
+    set_names(c(orEcoReg$name,'ALL'))
   
   #Get unique interaction matrices for each unique vineyard
   vyNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Unique vineyard names from csv paths
   
   #Get networks for individual vineyards from regional data
-  getVyNtwks <- function(vy){ #Terrible variable scoping practice, but works
-    vyPlantSpp <- vinePlDat %>% st_drop_geometry() %>% filter(vineyard==vy) %>% #Plant species list for this vineyard
+  getVyNtwks <- function(vy,vpDat,erNtwk){ #Check variable scoping...
+    vyPlantSpp <- vpDat %>% st_drop_geometry() %>% 
+      filter(vineyard==vy) %>% #Plant species list for this vineyard
       distinct() %>% filter(scientific_name!=plGenus) %>% 
       pull(scientific_name)
     vyPlantGen <- unique(gsub('\\s.+$','',vyPlantSpp)) #Plant genus list for this vineyard
-    vyEcoreg <- unique(vinePlDat$ecoreg[vinePlDat$vineyard==vy]) #Ecoregion for this vineyard
+    vyEcoreg <- unique(vpDat$ecoreg[vpDat$vineyard==vy]) #Ecoregion for this vineyard
     if(length(vyEcoreg)!=1) stop('More than 1 ecoregion per vineyard')
-    ecoregNtwk <- ecoRegNetworks[[vyEcoreg]] #Ecoregion network
+    #Ecoregion network
     ecoregNtwk_summary <- c('ecoRegName'=vyEcoreg,
-                            lapply(list('ntwk_all'=ecoregNtwk$ntwk_all,'ntwk_noWeed'=ecoregNtwk$ntwk_noWeed),function(x){
+                            lapply(list('ntwk_all'=erNtwk[[vyEcoreg]]$ntwk_all,
+                                        'ntwk_noWeed'=erNtwk[[vyEcoreg]]$ntwk_noWeed),function(x){
                               c('Nsamples'=sum(x),'Nrichness'=sum(x>0),
                                 'Nplants'=nrow(x),'Nbees'=ncol(x))  
                             })) 
     #Lists of species and genus (subset of regional lists)
     m <- list(
-      'sppList'=ecoregNtwk$sppList %>% filter(foragePlant %in% vyPlantSpp), #List of plant species along with associated bee species
-      'genList'=ecoregNtwk$genList %>% filter(foragePlant %in% vyPlantGen) #List of plant genera along with associated bee species
+      #List of plant species along with associated bee species
+      'sppList'= filter(erNtwk[[vyEcoreg]]$sppList,foragePlant %in% vyPlantSpp),
+      #List of plant genera along with associated bee species
+      'genList'= filter(erNtwk[[vyEcoreg]]$genList,foragePlant %in% vyPlantGen) 
     )
     
     if(any(nrow(m)==0)) warning(paste('No plants from',vy,'vineyard found in',vyEcoreg,'plant list'))
     
     #Matrices of: full vineyard network + Non-weedy vineyard network
-    n <- lapply(list('ntwk'=ecoRegNetworks[[vyEcoreg]]$ntwk_all, #Uses ecoregion network
-                     'ntwk_noWeed'=ecoRegNetworks[[vyEcoreg]]$ntwk_noWeed, #Ecoregion network without weeds
-                     'ntwk_all'=ecoRegNetworks[['ALL']]$ntwk_all, #Uses full oregon network
-                     'ntwk_all_noWeed'=ecoRegNetworks[['ALL']]$ntwk_noWeed #Full oregon network without weeds
+    n <- lapply(list('ntwk'=erNtwk[[vyEcoreg]]$ntwk_all, #Uses ecoregion network
+                     'ntwk_noWeed'=erNtwk[[vyEcoreg]]$ntwk_noWeed, #Ecoregion network without weeds
+                     'ntwk_all'=erNtwk[['ALL']]$ntwk_all, #Uses full oregon network
+                     'ntwk_all_noWeed'=erNtwk[['ALL']]$ntwk_noWeed #Full oregon network without weeds
     ),function(x){
       if(any(rownames(x) %in% vyPlantSpp)){
         x <- x[rownames(x) %in% vyPlantSpp,,drop=FALSE] #Remove plants that aren't found in plant name list
@@ -439,7 +442,7 @@ organizeData <- function(plantListPath, #List of plants from Oregon Flora
     return(c(list('ecoregNtwk_summary'=ecoregNtwk_summary),m,n))
   }
   
-  vyNetworks <- lapply(vyNames,getVyNtwks) %>% set_names(vyNames)
+  vyNetworks <- lapply(vyNames,getVyNtwks,vpDat=vinePlDat) %>% set_names(vyNames)
   
   # sapply(vyNetworks,function(x) x$ecoregNtwk_summary$ecoRegName) %>% table #Most vineyards in Willamette ecoReg
   # sapply(vyNetworks[sapply(vyNetworks,function(x) 'logical' %in% class(x$ntwk))],function(x) x$ecoregNtwk_summary$ecoRegName) #Empty networks are from ecoregs with smaller sample sizes
