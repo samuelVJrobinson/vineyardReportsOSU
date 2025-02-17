@@ -6,20 +6,15 @@ output:
     fig_caption: yes
     keep_tex: false
     includes:
-      in_header: vineyard-report-2-headIncl.tex
+      in_header: ./data/vineyard-report-header.tex
 params:
-  set_title: "Abbott_Claim"
-  data_path: './data/allVineyardData2024.Rdata'
+  set_title: "NULL"
+  wd_path: "NULL"
 geometry: margin=2cm
 title: ""
 ---
 
 ```{r setup, include=FALSE}
-# params: 
-#   set_title: "tempTitle" #Include as formal parameters once
-#   csv_path: "temp.csv" 
-
-
 #OREGON BEE ATLAS PROJECT BEE-FRIENDLY WINE GRAPE SUMMARY SHEET
 #WRITTEN BY SAM ROBINSON, FALL 2024
 library(knitr)
@@ -32,8 +27,7 @@ library(sf)
 library(SRtools)
 library(vegan)
 library(bipartite)
-# library(ggmap) #Requires Google API Key
-library(basemaps) #https://jakob.schwalb-willmann.de/basemaps/ #Try this instead
+library(basemaps) #https://jakob.schwalb-willmann.de/basemaps/ #Open source mapping package
 library(stars)
 
 #knitr options
@@ -46,71 +40,70 @@ knitr::opts_chunk$set(
 )
 options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
   
-# #Params for debugging:
-# params <- list(set_title = "Abbott_Claim",
-#                data_path = "./data/allVineyardData2024.Rdata",
-#                wd_path = "./reports/")
 oldWd <- getwd()
-# setwd(params$wd_path)
 
-load(params$data_path) #Load OBA bee data
-
-#Load vineyard plant data from iNaturalist records
-vinePlDat_all <- vinePlDat #All vineyard data
-
-vinePlDat <- vinePlDat %>% #Plants from focal vineyard
-  filter(vineyard==params$set_title) 
-
-if(length(unique(vinePlDat$ecoreg))!=1){
-  stop(paste0('Number of ecoregions (',length(unique(vinePlDat$ecoreg)),') for this vineyard is incorrect: should be 1'))
-} else {
-  ecoRegName <- unique(vinePlDat$ecoreg)
+if(any(sapply(params,function(x) x=='NULL'))){
+  stop("Vineyard name and output directory must be specified")
 }
 
-isMultiyear <- length(unique(vinePlDat$year))>1 #More than 1 year of data?
+#Debugging: param is a reserved word in this context, replace paramList with param after finished
+# setwd(paramList$wd_path) #Can't do this while debugging
+
+#Load vineyard plant data from iNaturalist records
+
+#Plants from focal vineyard
+vinePlDat_vy <- filter(vinePlDat, vineyard==paramList$set_title) 
+
+if(length(unique(vinePlDat_vy$ecoreg))!=1){
+  stop(paste0('Vineyard has ',length(unique(vinePlDat_vy$ecoreg)),' ecoregions; should be 1'))
+} else {
+  ecoRegName <- unique(vinePlDat_vy$ecoreg)
+}
+
+isMultiyear <- length(unique(vinePlDat_vy$year))>1 #More than 1 year of data?
 
 #All Oregon bee data - 75,895 rows
-beeDataAll <- beeData
+
 #Ecoregion-specific bee data
-beeData <- beeData %>% filter(ecoreg==ecoRegName) %>% 
+beeData_ecoreg <- beeData %>% filter(ecoreg==ecoRegName) %>% 
   st_drop_geometry() %>% 
   select(-recordedBy,-sex,-samplingProtocol,-ecoreg)
 
 #Plant genera found in vineyard during different years
-vinePlDat_year <- vinePlDat %>% st_drop_geometry() %>% 
+vinePlDat_year <- vinePlDat_vy %>% st_drop_geometry() %>% 
   select(plGenus,year) %>% distinct() %>% count(plGenus,year) %>% 
   pivot_wider(names_from=year,values_from = 'n',names_prefix = 'in',
               values_fill = 0,values_fn = ~.x==1)
-# vinePlDatSpp_year <- vinePlDat %>% st_drop_geometry() %>% #Same as above, but for full scientific name
+# vinePlDatSpp_year <- vinePlDat_vy %>% st_drop_geometry() %>% #Same as above, but for full scientific name
 #   select(scientific_name,year) %>% distinct() %>% filter(!grepl('spp.',scientific_name)) %>% 
 #   count(scientific_name,year) %>% pivot_wider(names_from=year,values_from = 'n',names_prefix = 'in',
 #               values_fill = 0,values_fn = ~.x==1)
 
 #Bee records from region that are found on plant genera from vineyard
-# dat_vinePlant <- beeData %>% filter(plantGenus %in% unique(vinePlDat$plGenus))
-# datSpp_vinePlant <- beeData %>% filter(foragePlant %in% unique(vinePlDat$scientific_name)) #Same as above, but for full scientific name
-dat_vinePlant <- beeData %>% st_drop_geometry() %>% 
+# dat_vinePlant <- beeData_ecoreg %>% filter(plantGenus %in% unique(vinePlDat_vy$plGenus))
+# datSpp_vinePlant <- beeData_ecoreg %>% filter(foragePlant %in% unique(vinePlDat_vy$scientific_name)) #Same as above, but for full scientific name
+dat_vinePlant <- beeData_ecoreg %>% st_drop_geometry() %>% 
   right_join(vinePlDat_year,by=c('plantGenus'='plGenus')) #Joins in yearly occurrence of each plant genus
 
 #Get scores for potential new plant genera/species
 
 #Scores for potential new spp/genera
-# plantScoresGen <- getPlGenScores(sppMat,unique(vinePlDat$plGenus),exclude = nonNativeGen) %>% 
+# plantScoresGen <- getPlGenScores(sppMat,unique(vinePlDat_vy$plGenus),exclude = nonNativeGen) %>% 
 #   select(-Chao1,-Chao1Z) %>% 
 #   filter(PlantGenus %in% plantList$Scientific_name) 
 
 plantScoresSpp <- getPlGenScores(mat = ecoRegNetworks[[ecoRegName]]$ntwk_all, #Regional network (plant spp - bee spp)
-                               plGen = unique(vinePlDat$scientific_name[!grepl('spp.',vinePlDat$scientific_name)]), #Plants from focal vineyard
+                               plGen = unique(vinePlDat_vy$scientific_name[!grepl('spp.',vinePlDat_vy$scientific_name)]), #Plants from focal vineyard
                                exclude = nonNativeSpp[!grepl('spp.',nonNativeSpp)]) %>% #Non-native species to exclude
   select(-Chao1,-Chao1Z) %>% 
   left_join(plantList,by=c('PlantGenus'='Scientific_name')) %>% 
   filter(!is.na(Common_name)) #Removes genSpp not found in plant list - mostly errors from the recorded plants in the bee data, I think
 
 #Genus-genus interaction matrix only for vineyard plant genera
-vineGenMat <- ecoRegNetworks[[ecoRegName]]$ntwk_gen_all[rownames(ecoRegNetworks[[ecoRegName]]$ntwk_gen_all) %in% unique(vinePlDat$plGenus),] 
+vineGenMat <- ecoRegNetworks[[ecoRegName]]$ntwk_gen_all[rownames(ecoRegNetworks[[ecoRegName]]$ntwk_gen_all) %in% unique(vinePlDat_vy$plGenus),] 
 
 #Vineyard plant genera that have no visiting bees (using data from the regional network)
-badPlGen <- sort(unique(vinePlDat$plGenus)[!unique(vinePlDat$plGenus) %in% unique(beeData$plantGenus)])
+badPlGen <- sort(unique(vinePlDat_vy$plGenus)[!unique(vinePlDat_vy$plGenus) %in% unique(beeData_ecoreg$plantGenus)])
 
 #Regional bee genera and species that are supported by listed plant genera
 # suppBeeGen <- dat_vinePlant %>% filter(!is.na(species)) %>% pull(genus) %>% unique() #Supported
@@ -122,8 +115,8 @@ suppBeeGen <- dat_vinePlant %>% filter(!is.na(genus)) %>% select(genus,contains(
 suppBeeSpp <- dat_vinePlant %>% filter(!is.na(species)) %>% select(genSpp,contains('in20')) %>% distinct() %>% #Bee species
   group_by(genSpp) %>% summarize(across(contains('in20'),~any(.x)))
 #Regional bee diversity ("gamma diversity")
-regBeeGen <- beeData %>% filter(!is.na(species)) %>% select(genus) %>% distinct() #Bee genera
-regBeeSpp <- beeData %>% filter(!is.na(species)) %>% select(genSpp) %>% distinct() #Bee species
+regBeeGen <- beeData_ecoreg %>% filter(!is.na(species)) %>% select(genus) %>% distinct() #Bee genera
+regBeeSpp <- beeData_ecoreg %>% filter(!is.na(species)) %>% select(genSpp) %>% distinct() #Bee species
 
 #Counts of supported bees by family (existing and suggested 5 new plants)
 famCounts <- bind_rows(mutate(suppBeeSpp,cat='existing'),
@@ -134,28 +127,34 @@ famCounts <- bind_rows(mutate(suppBeeSpp,cat='existing'),
 #Estimate regional bee species richness and abundance for each plant species 
 rareBees <- ecoRegNetworks[[ecoRegName]]$rareBees
 
-#Regional plant species visitor richness + other traits
+#Regional plant species visitor richness + other traits - includes non-visited plants
 plSppRich <- ecoRegNetworks[[ecoRegName]]$topSpp %>% 
-  left_join(plantList,by=c('plantSpp'='Scientific_name')) %>% 
+  full_join(plantList,by=c('plantSpp'='Scientific_name')) %>% 
   transmute(genSpp=plantSpp,N=Nbees,EstRich=Nbees_estim,Nrare=Nbees_rare,
             Synonym,Common_name,isWeedy,isNoxious,isNative,
-            Lifecycle,Bloom_start,Bloom_end,quality)
+            Lifecycle,Bloom_start,Bloom_end,quality) %>% 
+  mutate(across(where(is.factor),as.character)) %>% #Factor to character
+  mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)),
+         quality=ifelse(is.na(quality),'poor',quality)) #Fills in unmatched records with zeros (not visited)
 
 #Regional plant genus visitor richness + other traits
 plGenRich <- ecoRegNetworks[[ecoRegName]]$topGen %>% mutate(plantGen = paste0(plantGen,' spp.')) %>% 
-  left_join(filter(plantList,grepl('spp.',Scientific_name)),by=c('plantGen'='Scientific_name')) %>% 
+  full_join(filter(plantList,grepl('spp.',Scientific_name)),by=c('plantGen'='Scientific_name')) %>% 
   transmute(genSpp=plantGen ,N=Nbees,EstRich=Nbees_estim,Nrare=Nbees_rare,
             Synonym,Common_name,isWeedy,isNoxious,isNative,
             Lifecycle,Bloom_start,Bloom_end,quality) %>% 
-  mutate(genSpp=gsub(' spp.','',genSpp))
+  mutate(genSpp=gsub(' spp.','',genSpp)) %>% 
+  mutate(across(where(is.factor),as.character)) %>% #Factor to character
+  mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)),
+         quality=ifelse(is.na(quality),'poor',quality)) #Fills in unmatched records with zeros (not visited)
 
 #Join regional info to (grouped) grower plant info
-vinePlDat_spp <- vinePlDat %>% st_drop_geometry() %>% 
+vinePlDat_spp <- vinePlDat_vy %>% st_drop_geometry() %>% 
   filter(!grepl('.spp',scientific_name)) %>% #Removes genus only records
   count(scientific_name,name = 'Nplants') %>% #N = Number of total plants recorded
   left_join(plSppRich,c('scientific_name'='genSpp'))
 
-vinePlDat_gen <- vinePlDat %>% st_drop_geometry() %>% 
+vinePlDat_gen <- vinePlDat_vy %>% st_drop_geometry() %>% 
   count(plGenus,name = 'Nplants') %>% 
   left_join(plGenRich,by=c('plGenus'='genSpp'))
 
@@ -189,7 +188,7 @@ superPl_gen <- vinePlDat_gen %>%
 
 \centering\huge
 
-`r paste0(params$set_title,': REPORT 2025')`
+`r paste0(paramList$set_title,': REPORT 2025')`
 
 \raggedright\Large
 
@@ -302,7 +301,7 @@ Bee plants are often located in overlooked areas. While some plants are in your 
 
 ```{r fieldMaps, out.width = '100%', fig.asp=1}
 
-plantLocs <- vinePlDat %>% select(-vineyard,-ecoreg) %>% 
+plantLocs <- vinePlDat_vy %>% select(-vineyard,-ecoreg) %>% 
 
   # st_transform(4269) %>% mutate(lon=st_coordinates(.)[,1],lat=st_coordinates(.)[,2]) %>% st_drop_geometry() %>%
   left_join(select(plSppRich,genSpp,isNoxious,quality),by=c('scientific_name'='genSpp')) %>%
