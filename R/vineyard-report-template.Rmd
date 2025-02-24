@@ -419,7 +419,7 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
   rename_with(.fn = ~addRotate(gsub('is','',.x)),.cols=contains('is')) %>% 
   group_by(Lifecycle) %>% slice(1:nPlantsMax) %>% ungroup() %>% 
   kable(escape=FALSE,format = 'latex',longtable=TRUE,align = c(rep('r', 2),rep('l', 3),rep('c',6))) %>% 
-  kable_styling(latex_options = c("repeat_header")) %>% 
+  kable_styling(latex_options = c("repeat_header","scale_down")) %>% 
   column_spec(1,width='0.75cm') %>% 
   column_spec(3:5,width='2cm',latex_valign = 'm') %>% #Warning: arguement not atomic vector
   column_spec(6:11,latex_valign = 'm') %>% 
@@ -458,7 +458,7 @@ if(nrow(vyCombos_vy)==0){
     mutate(CommonName=paste0('\\textbf{',CommonName,'}')) %>% 
     mutate(ScientificName=paste0('\\emph{',ScientificName,'}')) %>% 
     kable(escape=FALSE,format = 'latex',col.names = c('Partner','Common Name','Scientific Name','Description')) %>% 
-    column_spec(4,width='10cm')
+    column_spec(4,width='10cm') %>% kable_styling(latex_options="scale_down")
 }
 
 ```
@@ -531,9 +531,9 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
   mutate(across(contains('is'),~ifelse(.x,'X',''))) %>% 
   rename_with(.fn = ~addRotate(gsub('is','',.x)),.cols=contains('is')) %>% 
   kable(escape=FALSE,format = 'latex',longtable=TRUE,align = c(rep('r', 2),rep('l', 3),rep('c',6))) %>% 
-  kable_styling(latex_options = c("repeat_header")) %>% 
+  kable_styling(latex_options = c("repeat_header","scale_down")) %>% 
   column_spec(1,width='0.75cm') %>% 
-  column_spec(3:5,width='2cm',latex_valign = 'm') %>% #Warning: arguement not atomic vector
+  column_spec(3:5,width='2cm',latex_valign = 'm') %>% #Warning: argument not atomic vector
   column_spec(6:11,latex_valign = 'm') %>% 
   add_header_above(c(" "=5,"Planting Type"=6),line = TRUE)
 ```
