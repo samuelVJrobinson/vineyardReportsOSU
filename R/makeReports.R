@@ -695,12 +695,18 @@ organizeData <- function(plantListPath,
   
   # Create reports --------------------
   print(paste0('Creating reports (',length(vyNetworks),' total)'))
+
+  #Debugging  
+    render('./R/vineyard-report-template.Rmd',
+           params = list(set_title="Abbott_Claim"),
+           intermediates_dir = './reports',
+           output_dir = './reports',knit_root_dir = NULL,
+           output_file = 'Abbott_Claim-report.pdf',
+           envir=parent.frame(),
+           clean=TRUE
+    )
   
-  #Params for debugging:
-  paramList <- list(set_title = "Abbott_Claim",
-                 wd_path = "./data/")
-  
-  # for(i in 1:length(names(vyNetworks))){
+    # for(i in 1:length(names(vyNetworks))){
   #   render('vineyard-report-template.Rmd',
   #          params = list(set_title=names(vyNetworks)[i]),
   #          intermediates_dir = './reports',
