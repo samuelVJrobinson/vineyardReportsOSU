@@ -45,13 +45,15 @@ organizeData <- function(plantListPath,
   # library(bipartite)
   
   #Debugging
-  setwd("C:/Users/Samuel/Documents/Projects/Stats projects/OSU-vineyard-reports")
+  # setwd("C:/Users/Samuel/Documents/Projects/Stats projects/OSU-vineyard-reports")
+  
   #List of plants from Oregon Flora
-  plantListPath = 'C:\\Users\\Samuel\\Desktop\\Test vineyard folders\\cleanedPlantList2024.csv' 
-  beeDataPath = 'C:\\Users\\Samuel\\Desktop\\Test vineyard folders\\OBA_2017_2023_v16Oct24.csv' 
-  iNatFolder =  'C:\\Users\\Samuel\\Desktop\\Test vineyard folders\\iNat records'
+  plantListPath = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\cleanedPlantList2024.csv' 
+  beeDataPath = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\OBA_2017_2023_v16Oct24.csv' 
+  iNatFolder =  'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\iNat records'
   vinePlDatAll = NULL; predictedBeesPath = NULL
-  source('./R/capFirst.R'); source('./R/getPlGenScores.R'); source('./R/makeGenSpp.R')
+  # source('./R/capFirst.R'); 
+  source('./R/getPlGenScores.R'); source('./R/makeGenSpp.R')
   source('./R/replaceSynonyms.R'); source('./R/secConn.R'); source('./R/st_within_fast.R')
   
   #Built-in paths
@@ -99,6 +101,8 @@ organizeData <- function(plantListPath,
     filter(Scientific_name!='') %>% rowwise() %>% #Removes blanks
     mutate(Scientific_name=ifelse(grepl('\\s',Scientific_name),Scientific_name,paste0(Scientific_name,' spp.'))) %>% #Adds spp to genus
     mutate(Synonym=ifelse(grepl('.spp',Scientific_name)&Synonym!='',paste0(Synonym,' spp.'),Synonym)) %>% #Adds spp to Synonym 
+    mutate(Common_name=str_to_title(gsub(',.*','',Common_name))) %>% #Removes all but first common name, and capitalizes
+    mutate(Lifecycle=str_to_title(Lifecycle)) %>% 
     rename(isNoxious=Noxious_weed,isWeedy=Weedy_species) %>% 
     mutate(isNative=grepl('(N|n)ative',Origin,)) %>%
     mutate(isWeedy=ifelse(isNoxious,FALSE,isWeedy)) %>% #Removes noxious species from weedy (non-overlapping sets)
@@ -131,7 +135,7 @@ organizeData <- function(plantListPath,
               lat=Dec..Lat.,lon=Dec..Long.) %>%
     mutate(across(where(is.character),~str_trim(.))) %>% #Trim whitespace across columns
     mutate(date=as.Date(date,format='%B %d %Y')) %>% #Create date
-    mutate(genus=capFirst(genus),family=famGen$lookupFam[match(genus,famGen$genus)]) %>%  #Capitalize spp names
+    mutate(genus=str_to_title(genus),family=famGen$lookupFam[match(genus,famGen$genus)]) %>%  #Capitalize spp names
     mutate(family=ifelse(genus=='Anthophorini','Apidae',family),family=ifelse(genus=='Anthophorini',NA,genus)) %>% #Fix tribe name
     makeGenSpp(genus,species) #%>% #Make genSpp column
   
@@ -703,10 +707,10 @@ organizeData <- function(plantListPath,
            output_dir = './reports',knit_root_dir = NULL,
            output_file = 'Abbott_Claim-report.pdf',
            envir=parent.frame(),
-           clean=TRUE
+           clean=FALSE
     )
   
-    # for(i in 1:length(names(vyNetworks))){
+  # for(i in 1:length(names(vyNetworks))){
   #   render('vineyard-report-template.Rmd',
   #          params = list(set_title=names(vyNetworks)[i]),
   #          intermediates_dir = './reports',

@@ -1,0 +1,106 @@
+Ideas/random notes:
+
+- What is the appropriate spatial scale for clustering networks? 
+	- Could use the entire State, but that seems unrealistic
+	- Could use radius of X distance, but what is appropriate radius?
+	- Could use ecoregions - these are usually based on plant species distributions, so it might work
+- What is the appropriate temporal scale for clustering networks?
+	- Could use spring/summer/autumn breakdown, but what are the appropriate cutoffs?
+	- Could break into degree-day chunks, but again, what are the breaks?	
+- How do networks/network properties vary across space/time?
+	- Could decompose networks (somehow) and see how axes vary across space/time
+- How do urban/rural networks differ? 
+	- Are all urban networks similar, regardless of ecoregion?
+
+Update notes, March 2024: 
+
+Notes on Stewardship Planning Tool (Jan 8)
+
+* Page 1 - highlight some interesting bees right up front.
+- Include an appendix with details on the different bee plants and bees. The appendix could also be the place to feature some of the agronomic information from Brooke’s database. 
+  - TO DO: Brooke and Sam need to work on this appendix
+- Change text on front page: “out of the XY plants identified in your iNaturalist project from your property…” - DONE
+
+* Page 2 – include some kind of year-over-year assessment of how well the property is improving – graph of bee and plant species in year 1, vs year 2 etc
+- Include some caveats. A large discussion occurred over benchmarks, how good am I doing relative to other vineyards or relative to a pristine oak savanna area, but we decided to include language “the manner in which the data is collected does not allow for ready comparisons across properties, but does let you know if your own efforts are improving bee habitat or not”
+  - TO DO: Sam needs to develop a year-over-year tracking information. - DONE
+
+* Page 2 & 3 - On the “2. Super Bee Plants” and “3. What Do We Recommend” break the plants into categories – “hedgerows”, “wet spots”, “garden area”, “meadow”, “between vines” – also links to Oregon Flora fact pages
+  - TO DO: Brooke needs to classify plants according to these categories and Sam needs to extract the plants based on these categories
+- There should be language directing people to County Soil and Water Conservation districts. Emphasize that their advice is FREE. Brooke will reach out to Jordan to come up with some language to insert in the print out. Language sound include information on the CREP program. Also mention that Pollinator Partnership can provide more detailed on site consultation for a fee.
+  - TO DO: Brooke with Jordan and other SWCD staff on the language and Sam will add to the report:
+  
+  "Soil and Water Conservation Districts (SWCD) offer free technical assistance and site visits to County residents interested in implementing conservation projects on their land. They can help develop a pollinator planting plan that is specific to your site and operation. In addition to pollinator plantings, landowners with streams and riparian areas may be eligible to enroll in a financial assistance program, the Conservation Reserve Enhancement Program (CREP), to establish native trees and shrubs along creeks. Reach out to your SWCD with this report to help you move forward with restoration plans."
+  
+- The recommended plant should have some suggestion of the minimum number of plants to include to make a difference
+  - TO DO: Andony will work with Brooke to see if there are minimum numbers of plants that should be considered, and Sam will add into the report.
+  
+* For Section 5 - tweets for growers - shuffled bees and plants so that the same operation don’t have the same bee and plant. One of the ways to consider this section being used is by staff and ambassadors who give tours around the property so they can speak about the project. There was also a discussion about boiling down the text and the response we had was the marketing teams would do this.
+  - TO DO: Brooke needs to get Linc to flag the interesting bees and Linda needs to flag the interesting plants. Sam will get this to randomize and populate the report. 
+
+Further notes after meeting with Andony, Linc, and Brooke (Jan 25th 2024)
+
+* Overall comments *   
+- Some desire for year-to-year progress report (of some kind)
+    - e.g. # of super bee plants, # of estimated bee species per year, along with caveat: "we may have not detected..."
+    - 1st sampling instance = "baseline" or "year 1"
+- What species to plant where - new vineyard land cover categories:   
+    - "hedgerow" x 5 plants
+    - "garden" x 5
+    - "wet areas/riparian" x 5
+    - "low-stature ground cover, for high-traffic areas between rows" x 5...
+    - "meadow" x 5
+- Appendix with full "potential plant" list, growing conditions, etc
+- Appendix with full bee list
+    - Could also just use tables from bee report, with phenology figure (?)
+- Appendix with full "existing plant" list
+
+* Updated document structure *
+
+pg 1
+    - update "from your property" to "from your iNaturalist project" - DONE
+    - add "weedy plants" in addition to "noxious weeds" - DONE
+    - add "yearly progress" figure, if multiple years of data exist - DONE
+pg 2
+    - take out photos - DONE
+pg 3
+    - remove hedgrow resource text - DONE
+pg 4
+    - [Brooke adds]: paragraph on site assessment - "SWCD can provide advice on where to get plants... give them a call" - DONE
+    - move figure to the top - "this is your potential target" - DONE
+    - take out photos - DONE
+    - table of 5 potential plants for each land cover category - hedgerow, garden, riparian, high-traffic, meadow
+    - column with added new bee species per plant (for prioritizing planting)
+    - may span multiple pages
+pg 5
+    - ok for now, needs some work
+    - single plant + single bee + blurb for each
+	
+Appendix 1 : bees at you property currently (spp list)
+    - table output from bee rport, with pheno figure
+Appendix 2: super bee plants on your property (including weeds)
+    - table with plant traits, propagation, etc
+Appendix 3: plants we recommend
+    - same traits as above
+    - all future plantings  
+
+Dec 2024 notes:
+- Plant list needs further cleaning. It contains a number of non-binomial "triple" species names that should be removed or combined with others.
+  - Automatic removal of last name creates duplication problems
+- Bee list contains a number of specimens with no "recordedBy" field
+- Some of the vineyard plant records from iNaturalist are actually bees
+
+Jan 2025 notes:
+- New dataset from Linc, update column headers appropriately
+- Change "Introduced" to "Exotic"
+  - Add caveat about exotic species: "They are exotic, but they do attract a large variety and abundance of bees"
+  - Add caveat about genera that have exotic + native forms: "Some species of X are exotic"
+- Change "Grump bee" to OBA logo
+  - Aim to have reports by end of Feb
+  
+- Paper: test hypothesis of ground-truthing to predicted bees ("First approximation") 
+  - Problem: how do we compare genus vs species-level IDs on bees for the given 
+  - This can
+  - Aiming for an LOI to Western SARE in May, would need preliminary info by then
+    - https://western.sare.org/grants/research-and-education/
+  -
