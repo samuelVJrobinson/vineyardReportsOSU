@@ -1,7 +1,7 @@
 #' @title Make vineyard reports
 #' @description Create vineyard reports from iNaturalist project data, bee/plant interactions, and plant list.
 #' 
-#' @param plantListPath List of plants from Oregon Flora
+#' @param plantListPath List of plants from Oregon Flora (csv)
 #' @param beeDataPath List of bee/plant interactions from OBA
 #' @param csvPaths Folder containing vineyard iNaturalist csv files 
 #' @param vinePlDatAll Output csv of all vineyard records. Skips writing if NULL
@@ -74,6 +74,13 @@ organizeData <- function(plantListPath,
   # Load and clean up Oregon plant data -------------------------
   plantList <- read.csv(plantListPath,strip.white = TRUE) 
   
+  reqPlantCols <- c('Scientific_name','Synonym','Common_name','Bloom_start',
+                    'Bloom_end','Lifecycle','Origin','Garden_type','Family','PlantAbstract')
+  
+  if(any(!reqPlantCols %in% colnames(plantList))){
+    stop(paste0('Plant list from Oregon Flora must have the following columns:\n',paste0(reqPlantCols,collapse='\n')))
+  }
+  
   chooseThese <- grepl('(var|ssp)\\.',plantList$Scientific_name)
   if(any(chooseThese)){
     warning(paste0("Plant names with 'var' or 'ssp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -127,8 +134,17 @@ organizeData <- function(plantListPath,
   
   # Load and clean up bee data ------------------------------------
   beeData <- read.csv(beeDataPath,stringsAsFactors = FALSE,
-                      strip.white = TRUE,na.strings=c('NA','')) %>% 
-    filter(!is.na(Genus)) %>%
+                      strip.white = TRUE,na.strings=c('NA',''))
+  
+  reqBeeCols <- c('Collectors.1','sex','Associated.plant','Collectionmethod',
+                  'MonthJul','MonthAb','Year.1','County','Genus','Species',
+                  'Dec..Lat.','Dec..Long.')
+  
+  if(any(!reqBeeCols %in% colnames(beeData))){
+    stop(paste0('Bee data must have the following columns:\n',paste0(reqBeeCols,collapse='\n')))
+  }
+  
+  beeData <- beeData %>% filter(!is.na(Genus)) %>%
     transmute(recordedBy=Collectors.1,sex=sex,foragePlant=Associated.plant,
               samplingProtocol=Collectionmethod,date=paste(MonthJul,MonthAb,Year.1),county=County,
               order='Hymenoptera',family=NA,genus=Genus,species=Species,genSpp=NA,plantGenus=NA,plantSpp=NA,
@@ -190,12 +206,24 @@ organizeData <- function(plantListPath,
   # Load spatial data ------------------------
   
   #Shapefiles of Oregon counties
-  orCounties <- st_read(orCountyShpPath,quiet = TRUE) %>% #Read in county polygons
-    select(unitID:altName) %>% #st_set_crs(4269) %>% #NAD83
+  orCounties <- st_read(orCountyShpPath,quiet = TRUE) #Read in county polygons
+  
+  if(any(!c('altName','geometry') %in% colnames(orCounties))){
+    stop(paste0('Oregon county shapefiles must have the following columns:\n',paste0('altName',collapse='\n')))
+  }
+  
+  orCounties <- orCounties %>% select(altName) %>% #st_set_crs(4269) %>% #NAD83
     st_transform(3643)
   
   #Shapefiles of Oregon ecoregions
-  orEcoReg <- st_read(orEcoregShpPath,quiet = TRUE) %>% transmute(name=NA_L3NAME) %>% #Read in ecoregions
+  
+  orEcoReg <- st_read(orEcoregShpPath,quiet = TRUE)
+  
+  if(any(!c('NA_L3NAME','geometry') %in% colnames(orEcoReg))){
+    stop(paste0('Oregon ecoregion shapefiles must have the following columns:\n',paste0('NA_L3NAME',collapse='\n')))
+  }
+  
+  orEcoReg <- orEcoReg %>% transmute(name=NA_L3NAME) %>% #Read in ecoregions
     st_transform(3643) %>% #Transform to Oregon Lambert
     mutate(name=gsub(' and ',' & ',name)) %>% #Replace "and" with "&"
     mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) #Add line break (\n) to "Cascades Slopes"
@@ -253,7 +281,8 @@ organizeData <- function(plantListPath,
     mutate(scientific_name=ifelse(!grepl('\\s',scientific_name),paste0(scientific_name,' spp.'),scientific_name)) %>% #Adds spp. to end of genus
     mutate(scientific_name=sapply(strsplit(scientific_name,'\\s'),function(x) paste0(x[1:2],collapse=' '))) %>% #Drops last word in triple names (e.g. Eriophyllum lanatum integrifolium -> Eriophyllum lanatum)
     mutate(scientific_name=replaceSynonyms(scientific_name,plantList$Scientific_name,plantList$Synonym)) %>% #Replace plant synonyms
-    mutate(plGenus=gsub('\\s.*','',scientific_name)) %>%
+    mutate(plGenus=gsub('\\s.*','',scientific_name)) %>% 
+    mutate(common_name=str_to_title(gsub(',.*','',common_name))) %>% #Capitalizes common names, and chooses only first one (if separated by commas)
     st_as_sf(coords=c('longitude','latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643)

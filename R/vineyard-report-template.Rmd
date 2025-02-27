@@ -54,7 +54,7 @@ if(any(sapply(params,function(x) x=='NULL'))){
 #Load vineyard plant data from iNaturalist records
 
 #Plants from focal vineyard
-vinePlDat_vy <- filter(vinePlDat, vineyard==params$set_title) 
+vinePlDat_vy <- filter(vinePlDat, vineyard==params$set_title)
 
 if(length(unique(vinePlDat_vy$ecoreg))!=1){
   stop(paste0('Vineyard has ',length(unique(vinePlDat_vy$ecoreg)),' ecoregions; should be 1'))
@@ -201,7 +201,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
     \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../data/images/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.2cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[height=5cm]{../data/images/Grumpbee transparent.png}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[height=1.8cm]{../data/images/OBP_OregonBeeAtlas_Logo_black.jpg}};
     \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../data/images/OregonFlora logo.jpg}};
     
 \end{tikzpicture}
@@ -276,7 +276,7 @@ if(isMultiyear){
 \clearpage
 \section{The \emph{super bee plants} on your property}
 
-A *super bee plant* attracts a wide diversity of bees, rare specialist bees, and is also not a noxious weed. Some weeds are included in this list, because they are contributing to your bee diversity.
+A *super bee plant* attracts a wide diversity of bees, rare specialist bees, and is also not a noxious weed. `r if(nrow(superPl_gen)>0) paste0('Some included plant genera have both native and non-native species. ')` `r if(any(superPl_gen$isWeedy|!superPl_gen$isNative)|any(superPl_spp$isWeedy|!superPl_spp$isNative)) paste0('Minor weeds and exotic plants _are_ included in this list, because they are contributing to your bee diversity. We recommend that future flower plantings be done using native species. ')` 
 
 Super bee plants on your property (in order of importance)\footnote{The data collected here does not allow for comparisons across properties, but does let you know if your own efforts are improving bee habitat or not.}: \large
 
@@ -288,9 +288,9 @@ if(nrow(superPl_spp)>0){
   select(Common_name,scientific_name,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
   slice(1:numPlants) %>%
   transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',scientific_name,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Introduced'),`Life cycle`=Lifecycle,
+            Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
             `Bloom Time`=paste0(Bloom_start,'-',Bloom_end)) %>%
-  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species', position = "h") %>% 
+  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species', position = "h",longtable=TRUE) %>% 
   column_spec(3,width='3cm') 
 
 } 
@@ -304,9 +304,9 @@ if(nrow(superPl_gen)>0){
     select(Common_name,plGenus,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
     slice(1:numPlants) %>%
     transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',plGenus,'})'),align='r'),
-              Origin=ifelse(isNative,'Native','Introduced'),`Life cycle`=Lifecycle,
+              Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
               `Bloom Time`=paste0(Bloom_start,'-',Bloom_end)) %>% 
-    kable(escape=FALSE,format = 'latex',caption = 'Super bee plant genera', position = "h") %>%  
+    kable(escape=FALSE,format = 'latex',caption = 'Super bee plant genera', position = "h",longtable=TRUE) %>%  
     column_spec(3,width='3cm') 
   
 }
@@ -324,7 +324,7 @@ if(nrow(superPl_spp)==0 & nrow(superPl_gen)==0){
 
 Bee plants are often located in overlooked areas. While some plants are in your cultivated landscaped areas, often they are found growing wild in your headlands. Consider increasing the number of plants in these areas through seeding or cuttings, or by managing weeds and grasses.
 
-```{r fieldMapsSpp, out.width = '100%', fig.asp=0.75, warning=FALSE}
+```{r fieldMapsSpp, fig.width=7, fig.asp=0.75, warning=FALSE}
 
 plantLocs <- vinePlDat_vy %>% select(-vineyard,-ecoreg) %>% 
   # st_transform(4269) %>% mutate(lon=st_coordinates(.)[,1],lat=st_coordinates(.)[,2]) %>% st_drop_geometry() %>%
@@ -370,7 +370,7 @@ ggplot() + geom_stars(data=st_rgb(b))+
 
 ```
 
-```{r fieldMapsGen, out.width = '100%', fig.asp=0.75, warning=FALSE}
+```{r fieldMapsGen, fig.width=7, out.width = '100%', fig.asp=0.75, warning=FALSE}
 # p2 <- 
 ggplot() + geom_stars(data=st_rgb(b))+
   geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Genus'),st_crs(b)),
@@ -412,7 +412,7 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
   left_join(select(plantList,Common_name,Scientific_name,isNative,Lifecycle,Bloom_start,Bloom_end,isNative:isWetland),
             by=c('genSpp'='Scientific_name')) %>% 
   mutate(Rank=1:n(),Plant=linebreak(paste0(Common_name,'\n(\\emph{',genSpp,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Introduced'),
+            Origin=ifelse(isNative,'Native','Exotic'),
             Bloom_period=paste0(Bloom_start,'-',Bloom_end)) %>%
   select(Rank,Plant,Origin,Lifecycle,Bloom_period,isLandscape:isWetland) %>% 
   rename(`Bloom Period`=Bloom_period,`Plant Species`=Plant) %>% 
@@ -518,7 +518,7 @@ if(nrow(superPl_spp)>0){
   superPl_spp %>%
   select(Common_name,scientific_name,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
   transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',scientific_name,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Introduced'),`Life cycle`=Lifecycle,
+            Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
             `Bloom Time`=paste0(Bloom_start,'-',Bloom_end)) %>%
   kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species',longtable=TRUE) %>% 
   column_spec(3,width='3cm') 
@@ -530,7 +530,7 @@ if(nrow(superPl_gen)>0){
   superPl_gen %>%
     select(Common_name,plGenus,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
     transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',plGenus,'})'),align='r'),
-              Origin=ifelse(isNative,'Native','Introduced'),`Life cycle`=Lifecycle,
+              Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
               `Bloom Time`=paste0(Bloom_start,'-',Bloom_end)) %>% 
     kable(escape=FALSE,format = 'latex',caption = 'Super bee plant genera', position = "h",longtable=TRUE) %>% 
     column_spec(3,width='3cm') 
@@ -557,7 +557,7 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
   left_join(select(plantList,Common_name,Scientific_name,isNative,Lifecycle,Bloom_start,Bloom_end,isNative:isWetland),
             by=c('genSpp'='Scientific_name')) %>% 
   mutate(Rank=1:n(),Plant=linebreak(paste0(Common_name,'\n(\\emph{',genSpp,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Introduced'),
+            Origin=ifelse(isNative,'Native','Exotic'),
             Bloom_period=paste0(Bloom_start,'-',Bloom_end)) %>%
   select(Rank,Plant,Origin,Lifecycle,Bloom_period,isLandscape:isWetland) %>% 
   rename(`Bloom Period`=Bloom_period,`Plant Species`=Plant) %>% 
