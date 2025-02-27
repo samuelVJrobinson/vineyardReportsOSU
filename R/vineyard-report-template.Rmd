@@ -164,16 +164,18 @@ plGenRich <- ecoRegNetworks[[ecoRegName]]$topGen %>% mutate(plantGen = paste0(pl
 #Join regional info to (grouped) grower plant info
 vinePlDat_spp <- vinePlDat_vy %>% st_drop_geometry() %>% 
   filter(!grepl('.spp',scientific_name)) %>% #Removes genus only records
-  count(scientific_name,name = 'Nplants') %>% #N = Number of total plants recorded
+  group_by(scientific_name) %>% summarize(common_name=first(common_name),Nplants=n()) %>% #N = Number of bee spp recorded
   left_join(plSppRich,c('scientific_name'='genSpp')) %>% 
+  mutate(Common_name=ifelse(is.na(Common_name),common_name,Common_name)) %>% select(-common_name) %>% #Replaces common name from plant list with iNat name if NA
   mutate(across(where(is.factor),as.character)) %>% #Factor to character
   mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)),#Fills in unmatched records with zeros (not visited)
          quality=ifelse(is.na(quality),'poor',quality)) %>% 
   mutate(quality=factor(quality,levels=c('poor','good','super')))
 
 vinePlDat_gen <- vinePlDat_vy %>% st_drop_geometry() %>% 
-  count(plGenus,name = 'Nplants') %>% 
+  group_by(plGenus) %>% summarize(common_name=first(common_name),Nplants=n()) %>% 
   left_join(plGenRich,by=c('plGenus'='genSpp')) %>% 
+  mutate(Common_name=ifelse(is.na(Common_name),common_name,Common_name)) %>% select(-common_name) %>% #Replaces common name from plant list with iNat name if NA
   mutate(across(where(is.factor),as.character)) %>% #Factor to character
   mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)),#Fills in unmatched records with zeros (not visited)
          quality=ifelse(is.na(quality),'poor',quality)) %>% 
@@ -203,7 +205,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
     \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../data/images/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.2cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[width=4cm]{../data/images/OBP_OregonBeeAtlas_Logo_black.jpg}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[width=7cm]{../data/images/OBP_OregonBeeAtlas_Logo_black.jpg}};
     \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../data/images/OregonFlora logo.jpg}};
     
 \end{tikzpicture}
