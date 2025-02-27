@@ -110,12 +110,32 @@ organizeData <- function(plantListPath,
     mutate(Synonym=ifelse(grepl('.spp',Scientific_name)&Synonym!='',paste0(Synonym,' spp.'),Synonym)) %>% #Adds spp to Synonym 
     mutate(Common_name=str_to_title(gsub(',.*','',Common_name))) %>% #Removes all but first common name, and capitalizes
     mutate(Lifecycle=str_to_title(Lifecycle)) %>% 
-    rename(isNoxious=Noxious_weed,isWeedy=Weedy_species) %>% 
+    rename(isNoxious=Noxious_weed,isWeedy=Weedy_species) 
+  
+  #Adds genera to list if not already present
+  plGen <- unique(gsub('\\s.*','',plantList$Scientific_name)) #Unique plant genera
+  noGen <- plGen[!plGen %in% gsub('\\s.*','',plantList$Scientific_name[grepl('.spp',plantList$Scientific_name)])] #Listed plant species with no generic-level (X spp.) record
+  if(length(noGen)>0){
+    warning(paste0('Genus-level information for ',length(noGen),' listed plant species missing. Adding missing genera:',
+                   paste(c('\n',noGen),collapse = '\n')))
+    cstring <- function(x) paste0(unique(unlist(strsplit(x,', '))),collapse=', ')
+    
+    #Gets plants that don't have a genus-level record, and amalgamates lifecycle, origin, and garden info
+    plantList <- plantList %>% select(Scientific_name,Lifecycle,Origin:Garden_type,Family) %>% 
+      mutate(Scientific_name=gsub('\\s.*','',Scientific_name)) %>% 
+      filter(Scientific_name %in% noGen) %>% mutate(Scientific_name=paste0(Scientific_name,' spp.')) %>% 
+      group_by(Scientific_name) %>% summarize(across(c(Lifecycle,Origin,Garden_type),cstring),
+                                              across(c(isNoxious,isWeedy),~any(!.x))) %>% 
+      bind_rows(plantList) #Adds to the original plant list  
+  }
+   
+  #Adds columns of plant traits 
+  plantList <- plantList %>% 
     mutate(isNative=grepl('(N|n)ative',Origin,)) %>%
     mutate(isWeedy=ifelse(isNoxious,FALSE,isWeedy)) %>% #Removes noxious species from weedy (non-overlapping sets)
     mutate(isLandscape=grepl('landscape',Garden_type),isEdge=grepl('edge areas',Garden_type),
            isRiparian=grepl('riparian',Garden_type),isOpen=grepl('open areas',Garden_type),
-           isOakWoodland=grepl('oak woodland',Garden_type),isWetland=grepl('seasonally wet',Garden_type)) #Assigns garden type - clunky
+           isOakWoodland=grepl('oak woodland',Garden_type),isWetland=grepl('seasonally wet',Garden_type)) #Assigns garden type - clunky, but works
   
   #Test for duplicate names
   if(any(table(plantList$Scientific_name)>1)){
@@ -152,7 +172,7 @@ organizeData <- function(plantListPath,
     mutate(across(where(is.character),~str_trim(.))) %>% #Trim whitespace across columns
     mutate(date=as.Date(date,format='%B %d %Y')) %>% #Create date
     mutate(genus=str_to_title(genus),family=famGen$lookupFam[match(genus,famGen$genus)]) %>%  #Capitalize spp names
-    mutate(family=ifelse(genus=='Anthophorini','Apidae',family),family=ifelse(genus=='Anthophorini',NA,genus)) %>% #Fix tribe name
+    mutate(family=ifelse(genus=='Anthophorini','Apidae',family),family=ifelse(genus=='Anthophorini',NA,family)) %>% #Fix tribe name
     makeGenSpp(genus,species) #%>% #Make genSpp column
   
   chooseThese <- grepl('\\s\\(.+$',beeData$foragePlant) #Gets rid of brackets+text after foragePlant
@@ -218,7 +238,6 @@ organizeData <- function(plantListPath,
   #Shapefiles of Oregon ecoregions
   
   orEcoReg <- st_read(orEcoregShpPath,quiet = TRUE)
-  
   if(any(!c('NA_L3NAME','geometry') %in% colnames(orEcoReg))){
     stop(paste0('Oregon ecoregion shapefiles must have the following columns:\n',paste0('NA_L3NAME',collapse='\n')))
   }
@@ -305,6 +324,9 @@ organizeData <- function(plantListPath,
   
   # Gets unique plant records and associated bee records from the 2024 bee data. Used to generate a list of "highlight" bees and plants for growers
   
+  #Figure out how Rosmarinus is getting "super" classification
+  #Phacelia tanacetifolia should be in Willamette Valley network
+  
   #Create ecoregions-specific networks (all interactions from a given region). Should eventually turn into a stand-alone function. Could also make a general-purpose version that works with arbitrary subsets (would replace both getRegNtwks and getVyNtwks?)
   getRegNtwks <- function(nm,bdat,pList){ 
     if(nm=='ALL'){ #Uses all of Oregon
@@ -388,12 +410,12 @@ organizeData <- function(plantListPath,
       topSpp <- topGen <- NA
     } else {
       #Top plant species for ecoregion (based on Chao1 richness from plant spp - bee spp network)
-      topSpp <- vegan::estimateR(ntwk_noWeed) %>% t() %>% 
+      topSpp <- vegan::estimateR(ntwk_all) %>% t() %>% 
         data.frame() %>% 
         rownames_to_column('plantSpp') %>%
         select(plantSpp:S.chao1) %>% arrange(desc(S.chao1)) %>% 
         rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
-        mutate(Nbees_rare=rowSums(ntwk_noWeed[,colnames(ntwk_noWeed) %in% rareBees$genSpp,drop=FALSE])) %>%
+        mutate(Nbees_rare=rowSums(ntwk_all[,colnames(ntwk_all) %in% rareBees$genSpp,drop=FALSE])) %>%
         arrange(desc(Nbees)) %>%
         #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
         mutate(quality=case_when( #Cutoffs for forage plant "quality"

@@ -48,7 +48,7 @@ if(any(sapply(params,function(x) x=='NULL'))){
 #Debugging: param is a reserved word in this context, replace paramList with param after finished
 # setwd(paramList$wd_path) #Can't do this while debugging
 
-#Params for debugging:
+# #Params for debugging:
 # params <- list(set_title = "Abbott_Claim")
 
 #Load vineyard plant data from iNaturalist records
@@ -93,7 +93,6 @@ dat_vinePlant <- beeData_ecoreg %>% st_drop_geometry() %>%
 # plantScoresGen <- getPlGenScores(sppMat,unique(vinePlDat_vy$plGenus),exclude = nonNativeGen) %>% 
 #   select(-Chao1,-Chao1Z) %>% 
 #   filter(PlantGenus %in% plantList$Scientific_name) 
-
 plantScoresSpp <- getPlGenScores(mat = ecoRegNetworks[[ecoRegName]]$ntwk_all, #Regional network (plant spp - bee spp)
                                plGen = unique(vinePlDat_vy$scientific_name[!grepl('spp.',vinePlDat_vy$scientific_name)]), #Plants from focal vineyard
                                exclude = nonNativeSpp[!grepl('spp.',nonNativeSpp)]) %>% #Non-native species to exclude
@@ -140,10 +139,12 @@ rareBees <- ecoRegNetworks[[ecoRegName]]$rareBees
 #Regional plant species visitor richness + other traits - includes non-visited plants
 plSppRich <- ecoRegNetworks[[ecoRegName]]$topSpp %>% #Visited plants from ecoregion
   full_join(plantList,by=c('plantSpp'='Scientific_name')) %>% #Join to plant spp data
+  filter(!grepl('spp.',plantSpp)) %>% #Remove genus-level records
   transmute(genSpp=plantSpp,N=Nbees,EstRich=Nbees_estim,Nrare=Nbees_rare, #Choose fields of interest
             Synonym,Common_name,isWeedy,isNoxious,isNative,
             Lifecycle,Bloom_start,Bloom_end,quality) %>% 
   mutate(across(where(is.factor),as.character)) %>% #Factor to character
+  mutate(across(c(isNative,isNoxious),~ifelse(is.na(.x),FALSE,.x))) %>% #Sets unknown origin plants to exotic & non-noxious
   mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)), #Fills in unmatched records with zeros (not visited)
          quality=ifelse(is.na(quality),'poor',quality)) 
 
@@ -155,6 +156,7 @@ plGenRich <- ecoRegNetworks[[ecoRegName]]$topGen %>% mutate(plantGen = paste0(pl
             Lifecycle,Bloom_start,Bloom_end,quality) %>% 
   mutate(genSpp=gsub(' spp.','',genSpp)) %>% 
   mutate(across(where(is.factor),as.character)) %>% #Factor to character
+  mutate(across(c(isNative,isNoxious),~ifelse(is.na(.x),FALSE,.x))) %>% #Sets unknown origin plants to exotic & non-noxious
   mutate(across(c(N,EstRich,Nrare),~ifelse(is.na(.x),0,.x)),#Fills in unmatched records with zeros (not visited)
          quality=ifelse(is.na(quality),'poor',quality)) %>% 
   mutate(quality=factor(quality,levels=c('poor','good','super')))
@@ -201,7 +203,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
     \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../data/images/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.2cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[height=1.8cm]{../data/images/OBP_OregonBeeAtlas_Logo_black.jpg}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-3cm] at (current page marginpar area.north east){\includegraphics[width=4cm]{../data/images/OBP_OregonBeeAtlas_Logo_black.jpg}};
     \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../data/images/OregonFlora logo.jpg}};
     
 \end{tikzpicture}
@@ -276,7 +278,7 @@ if(isMultiyear){
 \clearpage
 \section{The \emph{super bee plants} on your property}
 
-A *super bee plant* attracts a wide diversity of bees, rare specialist bees, and is also not a noxious weed. `r if(nrow(superPl_gen)>0) paste0('Some included plant genera have both native and non-native species. ')` `r if(any(superPl_gen$isWeedy|!superPl_gen$isNative)|any(superPl_spp$isWeedy|!superPl_spp$isNative)) paste0('Minor weeds and exotic plants _are_ included in this list, because they are contributing to your bee diversity. We recommend that future flower plantings be done using native species. ')` 
+A *super bee plant* attracts a wide diversity of bees, rare specialist bees, and is also not a noxious weed. `r if(nrow(superPl_gen)>0) paste0('Some included plants have both native and exotic species. ')` `r if(any(superPl_gen$isWeedy|!superPl_gen$isNative)|any(superPl_spp$isWeedy|!superPl_spp$isNative)) paste0('Non-noxious weeds and exotic plants _are_ included in this list because they are contributing to your bee diversity, but we recommend that future flower plantings be done using native species. ')` 
 
 Super bee plants on your property (in order of importance)\footnote{The data collected here does not allow for comparisons across properties, but does let you know if your own efforts are improving bee habitat or not.}: \large
 
@@ -377,7 +379,7 @@ ggplot() + geom_stars(data=st_rgb(b))+
           aes(col=quality.x),show.legend=TRUE)+
   geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),quality.x=='super',taxonLevel=='Genus'),
     aes(label = common_name, geometry = geometry),
-    stat = "sf_coordinates",col='cyan')+
+    stat = "sf_coordinates",col='cyan',size=10)+
   labs(x=NULL,y=NULL,col='Plant quality',title='Genus-level IDs')+
   theme(axis.text = element_blank(),axis.ticks = element_blank())+
   scale_colour_manual(values=c('tomato3','purple','cyan'),drop=FALSE)
