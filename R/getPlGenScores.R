@@ -6,7 +6,7 @@
 
 getPlGenScores <- function(mat,plGen,exclude=NULL){
   missPlGen <- !plGen %in% rownames(mat) #Plants in plGen that aren't found in the regional network
-  if(!any(!missPlGen)) stop('No listed plant genera not found in network')
+  if(!any(!missPlGen)) stop('No listed plant genera found in network')
   if(any(missPlGen)){
     warning(paste0('Some plant genera not found in network (no observed visitors):\n',
                    paste0(plGen[missPlGen],collapse='\n'),'\n'))
@@ -14,8 +14,8 @@ getPlGenScores <- function(mat,plGen,exclude=NULL){
   }
   
   #Known and potential networks
-  matKnw <- mat[rownames(mat) %in% plGen,] #From plant list
-  matPot <- mat[!rownames(mat) %in% plGen,] #Anything not in plant list
+  matKnw <- mat[rownames(mat) %in% plGen,,drop=FALSE] #From plant list
+  matPot <- mat[!rownames(mat) %in% plGen,,drop=FALSE] #Anything not in plant list
   
   if(!is.null(exclude) & any(rownames(matPot) %in% exclude)){
     warning(paste0('Some excluded genera were not considered:\n',

@@ -751,27 +751,40 @@ organizeData <- function(plantListPath,
   # Create reports --------------------
   print(paste0('Creating reports (',length(vyNetworks),' total)'))
 
-  #Debugging  
-    render('./R/vineyard-report-template.Rmd',
-           params = list(set_title="Abbott_Claim"),
-           intermediates_dir = './reports',
-           output_dir = './reports',knit_root_dir = NULL,
-           output_file = 'Abbott_Claim-report.pdf',
-           envir=parent.frame(),
-           clean=FALSE
-    )
-  
-  # for(i in 1:length(names(vyNetworks))){
-  #   render('vineyard-report-template.Rmd',
-  #          params = list(set_title=names(vyNetworks)[i]),
-  #          intermediates_dir = './reports',
-  #          output_dir = './reports',knit_root_dir = NULL,
-  #          output_file = paste0(names(vyNetworks)[i],'-report.pdf'),
+  # #Debugging  
+  #   render('./reports/vineyard-report-template.Rmd',
+  #          params = list(set_title="Abbott_Claim"),
+  #          output_file = 'Abbott_Claim-report.pdf',
   #          envir=parent.frame(),
   #          clean=TRUE
   #   )
-  #   print(paste0('Finished report ',names(vyNetworks)[i]))
-  # }
+  
+  for(vy in 1:length(names(vyNetworks))){
+    
+    #Size of ecoregion network
+    ntwkSize <- dim(ecoRegNetworks[[unique(vinePlDat$ecoreg[
+      vinePlDat$vineyard==names(vyNetworks)[vy]])]]$ntwk_all)
+    
+    #Check that network size is large enough
+    if(ntwkSize[1]*ntwkSize[2]<500){
+      print(paste0('Ecoregion network (',unique(vinePlDat$ecoreg[
+        vinePlDat$vineyard==names(vyNetworks)[vy]]),') size for ',
+        names(vyNetworks)[vy],' is too small (',ntwkSize[1],
+        ' plant, ',ntwkSize[2],' pollinator)'))
+    } else {
+      render('./reports/vineyard-report-template.Rmd',
+             params = list(set_title=names(vyNetworks)[vy]),
+             intermediates_dir = './reports',
+             output_dir = './reports',knit_root_dir = NULL,
+             output_file = paste0(names(vyNetworks)[vy],'-report.pdf'),
+             envir=parent.frame(),
+             clean=TRUE,quiet = TRUE
+      )
+      file.remove(paste0('./reports/',names(vyNetworks)[vy],'-report.log')) #Cleanup
+      print(paste0('Finished report ',names(vyNetworks)[vy]))
+    }
+    
+  }
 }
 
 
