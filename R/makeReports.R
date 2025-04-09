@@ -1,34 +1,36 @@
 #' @title Make vineyard reports
 #' @description Create vineyard reports from iNaturalist project data, bee/plant interactions, and plant list.
 #' 
-#' @param plantListPath List of plants from Oregon Flora (csv)
-#' @param beeDataPath List of bee/plant interactions from OBA
-#' @param csvPaths Folder containing vineyard iNaturalist csv files 
-#' @param vinePlDatAll Output csv of all vineyard records. Skips writing if NULL
-#' @param predictedBeesPath Output csv of Predicted bees for each vineyard. Skips writing if NULL
-#' @param dataStoragePath Storage path for .Rdata file
+#' @param plantListCSV List of plants from Oregon Flora (csv)
+#' @param beeDataCSV List of bee/plant interactions from OBA
+#' @param iNatFolder Folder containing vineyard iNaturalist csv files 
+#' @param reportFolder Folder for writing reports to
+#' @param vinePlDatCSV (Optional) output csv of all vineyard records. Skips writing if NULL
+#' @param predictedBeesCSV (Optional) output csv of predicted bees for each vineyard. Skips writing if NULL
+#' @param dataStoragePath (Optional) storage path for .Rdata file
 #' 
 #' @return Nothing - writes to dataStoragePath
 #' @export
 #'
 #' @examples
-organizeData <- function(plantListPath, 
-                         beeDataPath, 
-                         iNatFolder = NULL, 
-                         vinePlDatAll = NULL,
-                         predictedBeesPath = NULL,
+organizeData <- function(plantListCSV = NULL, 
+                         beeDataCSV = NULL, 
+                         reportFolder = NULL, 
+                         reportDir = NULL,
+                         vinePlDatCSV = NULL,
+                         predictedBeesCSV = NULL,
                          dataStoragePath = NULL
 ){
   
   # Preamble ---------------------------
   
   ##Input arguments
-  # plantListPath : './data/plant data/cleanedPlantList2024.csv' #List of plants from Oregon Flora
-  # beeDataPath : './data/bee data/OBA_2017_2023_v16Oct24.csv' #Bee list from OBA
+  # plantListCSV : './data/plant data/cleanedPlantList2024.csv' #List of plants from Oregon Flora
+  # beeDataCSV : './data/bee data/OBA_2017_2023_v16Oct24.csv' #Bee list from OBA
   # iNatFolder =  Get paths to vineyard iNaturalist csvs
   ## Writing (output) arguments
-  # vinePlDatAll = Output csv of all vineyard records
-  # predictedBeesPath = Output csv of Predicted bees for each vineyard
+  # vinePlDatCSV = Output csv of all vineyard records
+  # predictedBeesCSV = Output csv of Predicted bees for each vineyard
   # dataStoragePath = Storage path for .Rdata file
   
   ## Included in /data:
@@ -48,10 +50,12 @@ organizeData <- function(plantListPath,
   # setwd("C:/Users/Samuel/Documents/Projects/Stats projects/OSU-vineyard-reports")
   
   #List of plants from Oregon Flora
-  plantListPath = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\cleanedPlantList2024.csv' 
-  beeDataPath = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\OBA_2017_2023_v16Oct24.csv' 
+  plantListCSV = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\cleanedPlantList2024.csv' 
+  beeDataCSV = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\OBA_2017_2023_v16Oct24.csv'
   iNatFolder =  'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\iNat records'
-  vinePlDatAll = NULL; predictedBeesPath = NULL
+  reportFolder = 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Desktop\\Test vineyard folders\\reports'
+  vinePlDatCSV = NULL; predictedBeesCSV = NULL; dataStoragePath = NULL
+  
   # source('./R/capFirst.R'); 
   source('./R/getPlGenScores.R'); source('./R/makeGenSpp.R')
   source('./R/replaceSynonyms.R'); source('./R/secConn.R'); source('./R/st_within_fast.R')
@@ -72,7 +76,7 @@ organizeData <- function(plantListPath,
   famGen <- read.csv(famGenPath) %>% rename(lookupFam=family) #Bee genus-family lookup table
   
   # Load and clean up Oregon plant data -------------------------
-  plantList <- read.csv(plantListPath,strip.white = TRUE) 
+  plantList <- read.csv(plantListCSV,strip.white = TRUE) 
   
   reqPlantCols <- c('Scientific_name','Synonym','Common_name','Bloom_start',
                     'Bloom_end','Lifecycle','Origin','Garden_type','Family','PlantAbstract')
@@ -153,7 +157,7 @@ organizeData <- function(plantListPath,
     pull(Scientific_name)
   
   # Load and clean up bee data ------------------------------------
-  beeData <- read.csv(beeDataPath,stringsAsFactors = FALSE,
+  beeData <- read.csv(beeDataCSV,stringsAsFactors = FALSE,
                       strip.white = TRUE,na.strings=c('NA',''))
   
   reqBeeCols <- c('Collectors.1','sex','Associated.plant','Collectionmethod',
@@ -285,7 +289,7 @@ organizeData <- function(plantListPath,
     if(any(!reqCols %in% colnames(l))){ #If observed_on not found in iNat record
       stop(paste0('Columns missing from iNaturalist record: ',x,'. Required columns: ',paste0(reqCols,collapse = ', ')))
     }
-    l <- l %>% select(latitude,longitude,scientific_name,common_name,observed_on) %>% #Select relevant columns
+    l <- l %>% select(reqCols) %>% #Select relevant columns
       mutate(vineyard=gsub('(^.+\\d{4}/|\\.csv$)','',x)) %>% #Gets vineyard name and year
       mutate(year=format(as.Date(observed_on),format='%Y')) %>% select(-observed_on)
     return(l)
@@ -312,12 +316,12 @@ organizeData <- function(plantListPath,
     warning(paste0(sum(is.na(vinePlDat$ecoreg)),' samples not matching Oregon ecoregions discarded'))
     vinePlDat <- vinePlDat %>% filter(!is.na(ecoreg))
   }
-  if(!is.null(vinePlDatAll)){
+  if(!is.null(vinePlDatCSV)){
     #Write to single csv
     vinePlDat %>% st_transform(4269) %>% 
       mutate(lat=st_coordinates(.)[2],lon=st_coordinates(.)[1]) %>% 
       st_drop_geometry() %>% 
-      write.csv(file = vinePlDatAll,row.names = FALSE)
+      write.csv(file = vinePlDatCSV,row.names = FALSE)
   }
   
   # Make regional and vineyard-level networks ------------------------------------
@@ -511,7 +515,7 @@ organizeData <- function(plantListPath,
     set_names(vyNames)
   
   #Write predicted bees at each vineyard to a csv
-  if(!is.null(predictedBeesPath)){
+  if(!is.null(predictedBeesCSV)){
     lapply(vyNetworks,function(x){
       if(!'matrix' %in% class(x$ntwk_noWeed)){
         x <- matrix(1,dimnames = list('NA','NA'))
@@ -525,7 +529,7 @@ organizeData <- function(plantListPath,
         filter(value>0) %>% select(-value) }) %>% 
       bind_rows(.id='Vineyard') %>% 
       mutate(across(everything(),~ifelse(grepl('NA\\s?',.x),NA,.x))) %>% 
-      write.csv(predictedBeesPath,row.names = FALSE)  
+      write.csv(predictedBeesCSV,row.names = FALSE)  
   }
   
   # Highlights list 1 ------------------------------------
@@ -685,7 +689,7 @@ organizeData <- function(plantListPath,
   # Highlights list 2 ----------------------------------------------
   
   #Chooses bee/plant highlight lists independently (highlighted bees don't need to visit highlighted plants)
-  # vyNetworks[[1]] %>% str
+  #NOTE: this Highlight List is not used at the moment. Future versions could select between different versions
   
   #Storage dataframe
   vyCombos2 <- data.frame('vineyard'=names(vyCounts[1,1,]),
@@ -744,20 +748,42 @@ organizeData <- function(plantListPath,
   vyCombos2 <- vyCombos2 %>% left_join(beeAbstracts,by=c('bee'='Bee_Scientific_Name')) %>% 
     left_join(transmute(plantList,Scientific_name,Plant_Common_Name=Common_name,Plant_Abstract=PlantAbstract),
               by=c('plant'='Scientific_name')) 
-  # %>% write.csv(beePlantPairsPath2,row.names = FALSE) #Writes to csv
-  
   # save.image(dataStoragePath)
   
   # Create reports --------------------
   print(paste0('Creating reports (',length(vyNetworks),' total)'))
 
-  # #Debugging  
-  #   render('./reports/vineyard-report-template.Rmd',
-  #          params = list(set_title="Abbott_Claim"),
-  #          output_file = 'Abbott_Claim-report.pdf',
-  #          envir=parent.frame(),
-  #          clean=TRUE
-  #   )
+  #Debugging
+  
+  #Works, but doesn't clean everything in the data folder
+  render('./data/vineyard-report-template.Rmd',
+         output_file = paste0(names(vyNetworks)[1],'-report'),
+         output_format = "pdf_document",
+         output_dir = reportFolder,
+         intermediates_dir = reportFolder,
+         knit_root_dir = reportFolder,
+         params = list(set_title=names(vyNetworks)[1]),
+         envir=new.env(),
+         clean=TRUE,quiet = FALSE
+  )
+
+  
+    # cpyRmd <- file.copy('./data/vineyard-report-template.Rmd',reportFolder,overwrite = TRUE)
+  # if(!cpyRmd) stop('Error copying Rmd template to reportFolder')
+  # #Copy rmd to target folder and then render
+  # cpyRmd <- file.copy('./data/vineyard-report-template.Rmd',reportFolder,overwrite = TRUE)
+  # if(!cpyRmd) stop('Error copying Rmd template to reportFolder')
+  # render(file.path(reportFolder,'vineyard-report-template.Rmd'),
+  #        output_file = file.path(reportFolder,paste0(names(vyNetworks)[1],'-report.pdf')),
+  #        output_dir = reportFolder,
+  #        intermediates_dir = reportFolder,
+  #        knit_root_dir = reportFolder,
+  #        params = list(set_title=names(vyNetworks)[1]),
+  #        envir=parent.frame(),
+  #        clean=FALSE,quiet = FALSE
+  # )
+  
+  
   
   for(vy in 1:length(names(vyNetworks))){
     
@@ -766,19 +792,20 @@ organizeData <- function(plantListPath,
       vinePlDat$vineyard==names(vyNetworks)[vy]])]]$ntwk_all)
     
     #Check that network size is large enough
-    if(ntwkSize[1]*ntwkSize[2]<500){
+    if(prod(ntwkSize)<500){ #If total interaction space isn't lare
       print(paste0('Ecoregion network (',unique(vinePlDat$ecoreg[
         vinePlDat$vineyard==names(vyNetworks)[vy]]),') size for ',
         names(vyNetworks)[vy],' is too small (',ntwkSize[1],
-        ' plant, ',ntwkSize[2],' pollinator)'))
+        ' plants, ',ntwkSize[2],' pollinators)'))
     } else {
-      render('./reports/vineyard-report-template.Rmd',
+      render('./data/vineyard-report-template.Rmd',
+             output_file = file.path(reportFolder,paste0(names(vyNetworks)[vy],'-report.pdf')),
+             output_dir = reportFolder,
+             intermediates_dir = reportFolder,
+             knit_root_dir = reportFolder,
              params = list(set_title=names(vyNetworks)[vy]),
-             intermediates_dir = './reports',
-             output_dir = './reports',knit_root_dir = NULL,
-             output_file = paste0(names(vyNetworks)[vy],'-report.pdf'),
              envir=parent.frame(),
-             clean=TRUE,quiet = TRUE
+             clean=FALSE,quiet = TRUE
       )
       file.remove(paste0('./reports/',names(vyNetworks)[vy],'-report.log')) #Cleanup
       print(paste0('Finished report ',names(vyNetworks)[vy]))

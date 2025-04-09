@@ -9,8 +9,8 @@ header-includes:
   - \usepackage{xcolor}
   - \definecolor{osuRed}{RGB}{215, 63, 9} %OSU red colour
   - \usepackage{setspace}
-  - \usepackage{multicol}
   - \usepackage{fancyhdr}
+  - \usepackage{multicol}
   - \pagestyle{fancy}
   - \fancyhf{} %Remove section names from header/footer
   - \renewcommand{\headrulewidth}{0pt}
@@ -24,7 +24,6 @@ header-includes:
   - \usepackage{multirow}
   - \usepackage{float}
   - \usepackage{pdflscape}
-  - \usepackage{xcolor}
   - \usepackage{makecell} %Required for doing line breaks within a table
   - \renewcommand{\thefootnote}{\fnsymbol{footnote}} %Change footnote marks to symbols rather than numbers
   - \usepackage{sectsty} %Change font sizes of section titles
