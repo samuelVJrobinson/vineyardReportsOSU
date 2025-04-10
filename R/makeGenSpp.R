@@ -9,7 +9,7 @@
 #' @examples
 #' dat <- data.frame(gen=c('Apis','Bombus','Nomada'),spp=c('mellifera','nevadensis',NA))
 #' makeGenSpp(dat,gen,spp)
-#Creates genus/species column, accounting for empty species labels
+#' 
 makeGenSpp <- function(d,genCol,sppCol,newCol=genSpp) {
   require(dplyr)
   d %>%

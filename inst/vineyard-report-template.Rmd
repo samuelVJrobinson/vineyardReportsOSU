@@ -117,9 +117,6 @@ dat_vinePlant <- beeData_ecoreg %>% st_drop_geometry() %>%
 #Get scores for potential new plant genera/species
 
 #Scores for potential new spp/genera
-# plantScoresGen <- getPlGenScores(sppMat,unique(vinePlDat_vy$plGenus),exclude = nonNativeGen) %>% 
-#   select(-Chao1,-Chao1Z) %>% 
-#   filter(PlantGenus %in% plantList$Scientific_name) 
 plantScoresSpp <- getPlGenScores(mat = ecoRegNetworks[[ecoRegName]]$ntwk_all, #Regional network (plant spp - bee spp)
                                plGen = unique(vinePlDat_vy$scientific_name[!grepl('spp.',vinePlDat_vy$scientific_name)]), #Plants from focal vineyard
                                exclude = nonNativeSpp[!grepl('spp.',nonNativeSpp)]) %>% #Non-native species to exclude
@@ -232,10 +229,10 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
 
 \begin{tikzpicture}[remember picture,overlay]
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
-    \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../data/images/OSU_ES-MM_horizontal_1C_W.png}};
+    \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../inst/extdata/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.2cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=8cm]{../data/images/OregonBeeAtlas-Logo-Final-03.png}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../data/images/OregonFlora logo.jpg}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=8cm]{../inst/extdata/OregonBeeAtlas-Logo-Final-03.png}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../inst/extdata/OregonFlora logo.jpg}};
     
 \end{tikzpicture}
 
@@ -256,7 +253,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
 Out of the `r nrow(vinePlDat_spp)` identified plant species from your iNaturalist project, \Huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'))` \Large are bee-friendly plants. Of these plants:
 ]
 
-\includegraphics[width=2.5cm]{../data/images/purple-fireweed-hi.png}
+\includegraphics[width=2.5cm]{../inst/extdata/purple-fireweed-hi.png}
 
 \columnbreak
 

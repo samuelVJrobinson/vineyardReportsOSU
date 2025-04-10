@@ -1,9 +1,20 @@
-#Function to get "scores" for unlisted plant genera (i.e. how much would bee species counts/network properties be increased by adding new species?)
-# mat = regional plant genus - bee species interaction matrix (i.e. potential interactions)
-#   - rows = plants, cols = bees
-# plGen = vector of current plant genus names from each location
-# exclude = character vector of plant genera that should not be considered (e.g. noxious weed)
-
+#' @title getPlGenScores
+#' 
+#' @description Function to get "scores" for unlisted plant genera (i.e. how much would bee species counts/network properties be increased by adding new species?)
+#'
+#' @param mat Matrix of regional plant - bee interactions (i.e. potential interactions to draw from). Rows = plants, cols = bees.
+#' @param plGen Character vector of current plant names from each location
+#' @param exclude Character vector of plant names that should not be considered (e.g. noxious weed, non-native)
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+#' 
+#' getPlGenScores(mat = ntwk_all, #Regional network (plant spp - bee spp)
+#'   plGen = unique(vinePlDat_vy$scientific_name), #Plants from focal vineyard
+#'   exclude = nonNativeSpp)
+#' 
 getPlGenScores <- function(mat,plGen,exclude=NULL){
   missPlGen <- !plGen %in% rownames(mat) #Plants in plGen that aren't found in the regional network
   if(!any(!missPlGen)) stop('No listed plant genera found in network')
@@ -64,7 +75,3 @@ getPlGenScores <- function(mat,plGen,exclude=NULL){
   
   return(ret)
 }
-
-# getPlGenScores(sppMat,unique(vinePlDat$plGenus)) %>% head
-# getPlGenScores(sppMat,unique(vinePlDat$plGenus),exclude='Lotus') %>% head
-# debugonce(getPlGenScores)
