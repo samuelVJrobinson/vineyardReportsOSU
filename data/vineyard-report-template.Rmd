@@ -5,7 +5,10 @@ output:
     toc: false
     fig_caption: yes
     keep_tex: false
+    keep_md: false
 header-includes:
+  - \usepackage{sectsty} %Change font sizes of section titles
+  - \sectionfont{\fontsize{22}{15}\selectfont} %Change font size to 22
   - \usepackage{xcolor}
   - \definecolor{osuRed}{RGB}{215, 63, 9} %OSU red colour
   - \usepackage{setspace}
@@ -26,8 +29,6 @@ header-includes:
   - \usepackage{pdflscape}
   - \usepackage{makecell} %Required for doing line breaks within a table
   - \renewcommand{\thefootnote}{\fnsymbol{footnote}} %Change footnote marks to symbols rather than numbers
-  - \usepackage{sectsty} %Change font sizes of section titles
-  - \sectionfont{\fontsize{22}{15}\selectfont} %Change font size to 22
   - \usepackage{tgheros}
   - \fontfamily{qhv}\selectfont
 params:
@@ -60,14 +61,9 @@ knitr::opts_chunk$set(
 	message = FALSE,
 	warning = FALSE
 )
-# knitr::opts_knit$set(
-#   root.dir = params$workDir
-# )
 
 options(dplyr.summarise.inform=FALSE, warn=-1) #Suppress warnings
   
-# oldWd <- getwd()
-
 if(any(sapply(params,function(x) x=='NULL'))){
   stop("Vineyard name and output directory must be specified")
 }
@@ -376,7 +372,7 @@ plantLocs <- vinePlDat_vy %>% select(-vineyard,-ecoreg) %>%
          taxonLevel=ifelse(grepl('.spp',scientific_name),'Genus','Species')) %>% 
    st_jitter(amount = 3) %>% arrange(quality.x) #Sorts, so super plants are rendered on top
 
-ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) 
+ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) %>% st_transform(3857)
 b <- basemap_stars(ext, map_service = "esri", map_type = "world_imagery",verbose = FALSE)
 
 # #Both genus & spp
