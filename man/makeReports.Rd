@@ -12,26 +12,26 @@ makeReports(
   vinePlDatCSV = NA,
   predictedBeesCSV = NA,
   dataStoragePath = NA,
-  famGenPath = "./data/famGenLookup.csv",
-  orCountyShpPath = "./data/shapefiles/orcntypoly.shp",
-  orEcoregShpPath = "./data/shapefiles/or_eco_l3.shp",
-  beeAbstractsPath = "./data/Bee_Abstracts.csv"
+  famGenPath = NA,
+  orCountyShpPath = NA,
+  orEcoregShpPath = NA,
+  beeAbstractsPath = NA
 )
 }
 \arguments{
-\item{plantListCSV}{CSV of plants from Oregon Flora (csv)}
+\item{plantListCSV}{\emph{Required} - CSV of plants from Oregon Flora}
 
-\item{beeDataCSV}{CSV of bee/plant interactions from OBA}
+\item{beeDataCSV}{\emph{Required} - CSV of bee/plant interactions from OBA}
 
-\item{iNatFolder}{Folder containing vineyard iNaturalist CSV files. Looks in sub-folders as well}
+\item{iNatFolder}{\emph{Required} - Folder/subfolders containing vineyard iNaturalist CSV files}
 
-\item{reportFolder}{Folder for writing reports to}
+\item{reportFolder}{\emph{Required} - Folder for writing reports to}
 
-\item{vinePlDatCSV}{(Optional) output csv of all vineyard records. Skips writing if NULL}
+\item{vinePlDatCSV}{(Optional) output csv of all vineyard records. Skips writing if NA}
 
-\item{predictedBeesCSV}{(Optional) output csv of predicted bees for each vineyard. Skips writing if NULL}
+\item{predictedBeesCSV}{(Optional) output csv of predicted bees for each vineyard. Skips writing if NA}
 
-\item{dataStoragePath}{(Optional) .Rdata storage path for internal function data. Skips writing if NULL}
+\item{dataStoragePath}{(Optional) .Rdata storage path for internal function data. Skips writing if NA}
 
 \item{famGenPath}{(Optional) Path to bee genus-family lookup csv}
 
@@ -46,4 +46,13 @@ Nothing - writes to vinePlDatCSV, predictedBeesCSV, or dataStoragePath
 }
 \description{
 Create vineyard reports from iNaturalist project data, bee/plant interactions, and plant list.
+}
+\examples{
+
+makeReports(plantListCSV = './cleanedPlantList2024.csv',
+  beeDataCSV = './OBA_2017_2023_v16Oct24.csv',
+  iNatFolder =  './iNat records',
+  reportFolder = './reports',
+  vinePlDatCSV = NA, predictedBeesCSV = NA, dataStoragePath = NA)
+
 }

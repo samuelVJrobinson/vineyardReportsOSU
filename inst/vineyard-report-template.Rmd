@@ -49,7 +49,6 @@ library(tidyr)
 library(ggpubr)
 library(ggrepel)
 library(sf)
-# library(SRtools)
 # library(vegan)
 # library(bipartite)
 library(basemaps) #https://jakob.schwalb-willmann.de/basemaps/ #Open source mapping package

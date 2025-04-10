@@ -6,14 +6,23 @@
 #' @param plGen Character vector of current plant names from each location
 #' @param exclude Character vector of plant names that should not be considered (e.g. noxious weed, non-native)
 #'
-#' @returns
-#' @export
+#' @returns Data frame with the following columns:
+#' * PlantGenus: suggested genus of plant to add
+#' * N: new bee species that would be added
+#' * Chao1: (Chao1) visitor richness for this plant, estimated from interaction matrix
+#' * ChaoZ: Z-score of difference in Chao1 scores (i.e. "Does this species significantly change richness?") 
+#' * PropShannon: Proportion increased Shannon-Weiner diversity
 #'
 #' @examples
 #' 
-#' getPlGenScores(mat = ntwk_all, #Regional network (plant spp - bee spp)
-#'   plGen = unique(vinePlDat_vy$scientific_name), #Plants from focal vineyard
-#'   exclude = nonNativeSpp)
+#' set.seed(12)
+#' #Regional interaction matrix
+#' iMat <- matrix(rpois(100,lambda = rgamma(n = 100,.1,.1)),10,10,
+#'   dimnames = list(paste0('plant',LETTERS[1:10]),paste0('bee',LETTERS[1:10])))
+#'   
+#' getPlGenScores(mat = iMat, #Regional network (plant spp - bee spp)
+#'   plGen = c('plantA','plantB','plantC'), #Plants found at focal vineyard
+#'   exclude = c('plantG','plantJ')) #Excluded plants
 #' 
 getPlGenScores <- function(mat,plGen,exclude=NULL){
   missPlGen <- !plGen %in% rownames(mat) #Plants in plGen that aren't found in the regional network

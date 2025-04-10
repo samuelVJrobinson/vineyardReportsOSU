@@ -24,4 +24,5 @@ Creates genus/species column, accounting for empty species labels (adds "spp.").
 \examples{
 dat <- data.frame(gen=c('Apis','Bombus','Nomada'),spp=c('mellifera','nevadensis',NA))
 makeGenSpp(dat,gen,spp)
+
 }

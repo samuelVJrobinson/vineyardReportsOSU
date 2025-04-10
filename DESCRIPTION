@@ -23,4 +23,5 @@ Imports:
     stringr,
     tibble,
     tidyr,
+    tinytex,
     vegan
