@@ -42,14 +42,16 @@ title: ""
 #WRITTEN BY SAM ROBINSON, FALL 2024
 library(knitr)
 library(kableExtra)
-library(tidyverse)
+library(ggplot2)
 theme_set(theme_classic())
+library(dplyr)
+library(tidyr)
 library(ggpubr)
 library(ggrepel)
 library(sf)
-library(SRtools)
-library(vegan)
-library(bipartite)
+# library(SRtools)
+# library(vegan)
+# library(bipartite)
 library(basemaps) #https://jakob.schwalb-willmann.de/basemaps/ #Open source mapping package
 library(stars)
 

@@ -16,23 +16,27 @@
 #' @return Nothing - writes to vinePlDatCSV, predictedBeesCSV, or dataStoragePath
 #' @export
 #'
-#' @examples
-organizeData <- function(plantListCSV = NA, 
-                         beeDataCSV = NA, 
-                         reportFolder = NA, 
-                         reportDir = NA,
-                         vinePlDatCSV = NA,
-                         predictedBeesCSV = NA,
-                         dataStoragePath = NA,
-                         famGenPath = './data/famGenLookup.csv', 
-                         orCountyShpPath = "./data/shapefiles/orcntypoly.shp", 
-                         orEcoregShpPath = "./data/shapefiles/or_eco_l3.shp",
-                         beeAbstractsPath = './data/Bee_Abstracts.csv'
+#' @examples Examples go here
+makeReports <- function(plantListCSV = NA, 
+                        beeDataCSV = NA, 
+                        iNatFolder = NA, 
+                        reportFolder = NA,
+                        vinePlDatCSV = NA,
+                        predictedBeesCSV = NA,
+                        dataStoragePath = NA,
+                        famGenPath = './data/famGenLookup.csv', 
+                        orCountyShpPath = "./data/shapefiles/orcntypoly.shp", 
+                        orEcoregShpPath = "./data/shapefiles/or_eco_l3.shp",
+                        beeAbstractsPath = './data/Bee_Abstracts.csv'
 ){
   
   # Preamble ---------------------------
   
-  library(tidyverse)
+  library(ggplot2)
+  theme_set(theme_classic())
+  library(dplyr)
+  library(tidyr)
+  
   library(sf)
   library(vegan)
   library(rmarkdown)
