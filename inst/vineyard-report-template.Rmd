@@ -231,7 +231,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
     \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../inst/extdata/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.2cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
     \node[anchor=south east,rectangle,,yshift=0cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=8cm]{../inst/extdata/OregonBeeAtlas-Logo-Final-03.png}};
-    \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../inst/extdata/OregonFlora logo.jpg}};
+    \node[anchor=south east,rectangle,,yshift=0cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=2.3cm]{../inst/extdata/OregonFlora_logo.jpg}};
     
 \end{tikzpicture}
 
@@ -412,8 +412,6 @@ ggplot() + geom_stars(data=st_rgb(b))+
 
 # ggarrange(p1,p2,ncol=2,common.legend = TRUE,legend = 'right')
 ```
-
-<!-- ![](tempMap.jpg){width="100%"} -->
 
 \normalsize
 \vspace{0.5cm}
