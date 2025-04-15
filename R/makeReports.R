@@ -772,9 +772,12 @@ makeReports <- function(plantListCSV = NA,
         names(vyNetworks)[vy],' is too small (',ntwkSize[1],
         ' plants, ',ntwkSize[2],' pollinators)'))
     } else {
+      
+      #Path to Rmd template
+      rmdPath <- system.file('rmdTemplates','vineyard-report-template.Rmd',package=packageName(),mustWork = TRUE)  
     
       suppressWarnings({
-        render('./inst/vineyard-report-template.Rmd',
+        render(rmdPath,
                output_file = paste0(names(vyNetworks)[vy],'-report'),
                output_format = "pdf_document",
                output_dir = reportFolder,
@@ -787,7 +790,7 @@ makeReports <- function(plantListCSV = NA,
       })
       
       #Cleanup
-      cln <- file.remove(list.files('./inst/','.*(pdf|log)',full.names = TRUE))
+      cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
       if(!any(!cln)) warning('Accessory files not removed. Manual cleanup needed afterwards.')
       print(paste0('Finished report ',names(vyNetworks)[vy]))
     }

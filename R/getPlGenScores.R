@@ -1,20 +1,16 @@
 #' @title getPlGenScores
-#' 
 #' @description Function to get "scores" for unlisted plant genera (i.e. how much would bee species counts/network properties be increased by adding new species?)
-#'
 #' @param mat Matrix of regional plant - bee interactions (i.e. potential interactions to draw from). Rows = plants, cols = bees.
 #' @param plGen Character vector of current plant names from each location
 #' @param exclude Character vector of plant names that should not be considered (e.g. noxious weed, non-native)
-#'
 #' @returns Data frame with the following columns:
 #' * PlantGenus: suggested genus of plant to add
 #' * N: new bee species that would be added
 #' * Chao1: (Chao1) visitor richness for this plant, estimated from interaction matrix
 #' * ChaoZ: Z-score of difference in Chao1 scores (i.e. "Does this species significantly change richness?") 
 #' * PropShannon: Proportion increased Shannon-Weiner diversity
-#'
+#' @import vineyardReportsOSU
 #' @examples
-#' 
 #' set.seed(12)
 #' #Regional interaction matrix
 #' iMat <- matrix(rpois(100,lambda = rgamma(n = 100,.1,.1)),10,10,
@@ -25,6 +21,9 @@
 #'   exclude = c('plantG','plantJ')) #Excluded plants
 #' 
 getPlGenScores <- function(mat,plGen,exclude=NULL){
+  library(bipartite)
+  library(vegan)
+  
   missPlGen <- !plGen %in% rownames(mat) #Plants in plGen that aren't found in the regional network
   if(!any(!missPlGen)) stop('No listed plant genera found in network')
   if(any(missPlGen)){

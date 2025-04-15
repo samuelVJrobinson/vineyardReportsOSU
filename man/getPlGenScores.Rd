@@ -27,7 +27,6 @@ Data frame with the following columns:
 Function to get "scores" for unlisted plant genera (i.e. how much would bee species counts/network properties be increased by adding new species?)
 }
 \examples{
-
 set.seed(12)
 #Regional interaction matrix
 iMat <- matrix(rpois(100,lambda = rgamma(n = 100,.1,.1)),10,10,
