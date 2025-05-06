@@ -323,10 +323,10 @@ makeReports <- function(plantListCSV = NA,
     message(paste0(sum(is.na(vinePlDat$ecoreg)),' samples not matching Oregon ecoregions discarded\n'))
     vinePlDat <- vinePlDat %>% filter(!is.na(ecoreg))
   }
-  if(!is.na(vinePlDatCSV)){
-    #Write to single csv
+  if(!is.na(vinePlDatCSV)){ #If path provided
+    #Write all iNat records to single csv
     vinePlDat %>% st_transform(4269) %>% 
-      mutate(lat=st_coordinates(.)[2],lon=st_coordinates(.)[1]) %>% 
+      mutate(lat=st_coordinates(.)[,2],lon=st_coordinates(.)[,1]) %>% 
       st_drop_geometry() %>% 
       write.csv(.,file = vinePlDatCSV,row.names = FALSE)
   }
@@ -690,7 +690,6 @@ makeReports <- function(plantListCSV = NA,
   vyCombos <- vyCombos %>% left_join(beeAbstracts,by=c('bee'='Bee_Scientific_Name')) %>% 
     left_join(transmute(plantList,Scientific_name,Plant_Common_Name=Common_name,Plant_Abstract=PlantAbstract),
               by=c('plant'='Scientific_name')) 
-  # %>% write.csv(beePlantPairsPath,row.names = FALSE) #Writes to file
   
   # Highlights list 2 ----------------------------------------------
   
