@@ -4,7 +4,7 @@ replaceSynonyms <- function(x,name,synonym){
   y <- sapply(x,function(xx,s){
     if(is.na(xx)|xx=='') return(NA); r <- grep(xx,s,fixed = TRUE); if(length(r)==0) NA else r #Find matches
   },s=synonym)
-  warning(paste0('Replaced synonyms:\n',
+  message(paste0('Replaced synonyms:\n',
                  paste0(apply(unique(cbind(x[!is.na(y)],name[y[!is.na(y)]])),1,paste,collapse=' -> '),
                         collapse='\n')))
   x[!is.na(y)] <- name[y[!is.na(y)]] #Replace matches

@@ -31,6 +31,7 @@ header-includes:
   - \renewcommand{\thefootnote}{\fnsymbol{footnote}} %Change footnote marks to symbols rather than numbers
   - \usepackage{tgheros}
   - \fontfamily{qhv}\selectfont
+  - \usepackage{textcomp}
 params:
   set_title: "NULL"
 geometry: margin=2cm
@@ -93,7 +94,7 @@ isMultiyear <- length(unique(vinePlDat_vy$year))>1 #More than 1 year of data?
 #Ecoregion-specific bee data
 beeData_ecoreg <- beeData %>% filter(ecoreg==ecoRegName) %>% 
   st_drop_geometry() %>% 
-  select(-recordedBy,-sex,-samplingProtocol,-ecoreg)
+  select(-CollectorName,-Sex,-Method,-ecoreg)
 
 #Plant genera found in vineyard during different years
 vinePlDat_year <- vinePlDat_vy %>% st_drop_geometry() %>% 
@@ -130,33 +131,33 @@ vineGenMat <- ecoRegNetworks[[ecoRegName]]$ntwk_gen_all[rownames(ecoRegNetworks[
 badPlGen <- sort(unique(vinePlDat_vy$plGenus)[!unique(vinePlDat_vy$plGenus) %in% unique(beeData_ecoreg$plantGenus)])
 
 #Regional bee genera and species that are supported by listed plant genera
-# suppBeeGen <- dat_vinePlant %>% filter(!is.na(species)) %>% pull(genus) %>% unique() #Supported
-# suppBeeSpp <- dat_vinePlant %>% filter(!is.na(species)) %>% pull(genSpp) %>% unique()
+# suppBeeGen <- dat_vinePlant %>% filter(!is.na(Species)) %>% pull(Genus) %>% unique() #Supported
+# suppBeeSpp <- dat_vinePlant %>% filter(!is.na(Species)) %>% pull(genSpp) %>% unique()
 
 #Predicted (yearly) bee occurrance based on genera found on the property ("alpha diversity")
-suppBeeGen <- dat_vinePlant %>% filter(!is.na(genus)) %>% 
-  select(genus,contains('in20')) %>% distinct() %>% #Bee genera 
-  group_by(genus) %>% summarize(across(contains('in20'),~any(.x))) #%>% 
-  # left_join(famGen,by='genus') 
+suppBeeGen <- dat_vinePlant %>% filter(!is.na(Genus)) %>% 
+  select(Genus,contains('in20')) %>% distinct() %>% #Bee genera 
+  group_by(Genus) %>% summarize(across(contains('in20'),~any(.x))) #%>% 
+  # left_join(famGen,by='Genus') 
 
-suppBeeSpp <- dat_vinePlant %>% filter(!is.na(species)) %>% 
+suppBeeSpp <- dat_vinePlant %>% filter(!is.na(Species)) %>% 
   select(genSpp,contains('in20')) %>% distinct() %>% #Bee species
   group_by(genSpp) %>% summarize(across(contains('in20'),~any(.x))) %>% 
-  mutate(genus=gsub('\\s.*','',genSpp)) #%>% 
-  # left_join(famGen,by='genus') %>% select(-genus)
+  mutate(Genus=gsub('\\s.*','',genSpp)) #%>% 
+  # left_join(famGen,by='Genus') %>% select(-Genus)
 
 #Regional bee diversity ("gamma diversity")
-regBeeGen <- beeData_ecoreg %>% filter(!is.na(species)) %>% select(genus) %>% distinct() #Bee genera
-regBeeSpp <- beeData_ecoreg %>% filter(!is.na(species)) %>% select(genSpp) %>% distinct() #Bee species
+regBeeGen <- beeData_ecoreg %>% filter(!is.na(Species)) %>% select(Genus) %>% distinct() #Bee genera
+regBeeSpp <- beeData_ecoreg %>% filter(!is.na(Species)) %>% select(genSpp) %>% distinct() #Bee species
 
 #Counts of supported bees by family (existing and suggested 5 new plants)
 famCounts <- bind_rows(mutate(suppBeeSpp,cat='existing'),
                        data.frame(genSpp=trimws(strsplit(paste0(plantScoresSpp$newSpp[1:5],collapse=', '),split = ',')[[1]]),
                                   cat='new')) %>% 
-  mutate(genus=gsub('\\s.+$','',genSpp)) %>% left_join(famGen,by='genus')
+  mutate(Genus=gsub('\\s.+$','',genSpp)) %>% left_join(famGen,by='Genus')
 
-suppBeeGen <- suppBeeGen %>% left_join(famGen,by='genus')
-suppBeeSpp <- suppBeeSpp %>% left_join(famGen,by='genus') %>% select(-genus)
+suppBeeGen <- suppBeeGen %>% left_join(famGen,by='Genus')
+suppBeeSpp <- suppBeeSpp %>% left_join(famGen,by='Genus') %>% select(-Genus)
 
 #Estimate regional bee species richness and abundance for each plant species 
 rareBees <- ecoRegNetworks[[ecoRegName]]$rareBees
@@ -274,7 +275,7 @@ Based on bee-plant records from Oregon Bee Atlas, we predict that you have \Huge
 if(isMultiyear){
   #Shows additional spp added each year
   famCounts %>% filter(cat=='existing') %>%
-    mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$family),labels = rev(commonFam$plotLab))) %>% 
+    mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$Family),labels = rev(commonFam$plotLab))) %>% 
     pivot_longer(cols=contains('in20'),names_to='year',names_transform = as.factor) %>%
     group_by(genSpp) %>% mutate(value=cumsum(value)>0) %>% ungroup() %>% filter(value) %>%
     count(lookupFam,year,.drop=FALSE) %>% pivot_wider(names_from='year',values_from='n') %>% 
@@ -289,7 +290,7 @@ if(isMultiyear){
   
 } else {
   famCounts %>% filter(cat=='existing') %>%
-    mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$family),labels = rev(commonFam$plotLab))) %>%
+    mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$Family),labels = rev(commonFam$plotLab))) %>%
     count(lookupFam,.drop=FALSE) %>%
     ggplot(aes(x=lookupFam,y=n))+
     geom_col(col='black',fill='grey20')+
@@ -460,7 +461,7 @@ For a full list of native plants, see Appendix 3.
 
 ```{r beeFamilyPlotNew, out.width = '100%', fig.asp=0.4}
 famCounts %>% 
-  mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$family),labels = rev(commonFam$plotLab))) %>%
+  mutate(lookupFam=factor(lookupFam,levels= rev(commonFam$Family),labels = rev(commonFam$plotLab))) %>%
   mutate(cat=factor(cat,levels=c('new','existing'),labels=c('Future','Current'))) %>%
   count(lookupFam,cat,.drop=FALSE) %>%
   ggplot(aes(x=lookupFam))+
@@ -487,23 +488,23 @@ famCounts %>%
 
 `r if(nrow(vyCombos_vy)!=0 & vyCombos_vy$plant!='All weeds') "Your property had the following plant species, which is visited by the following unique unique bee:"`
 
+
 ```{r uniqueBeesPlants}
-if(nrow(vyCombos_vy)==0){
+if(nrow(vyCombos_vy)==0){ 
   stop('Vineyard not found in list of unique bees and plants.')
 } else if(vyCombos_vy$plant!='All weeds'){
   vyCombos_vy %>% rename_with(.fn=~gsub('Common_Name','CommonName',.x),.cols = everything()) %>% 
     rename_with(.fn=~paste0(str_to_title(.x),"_ScientificName"),.cols = !contains('_')) %>% 
     pivot_longer(everything(),names_to=c('partner','type'),names_pattern = "(\\w+)_(\\w+)",values_to = 'text') %>% 
     pivot_wider(names_from=type,values_from=text) %>% 
-    mutate(CommonName=gsub(',.*','',str_to_title(CommonName))) %>%
+    mutate(CommonName=gsub(',.*','',str_to_title(CommonName))) %>% #Gets rid of multiple names
+    mutate(across(c(CommonName,Abstract), ~gsub("('|’)","\\\\textquotesingle ",.x))) %>% #Escapes 2 types of apostrophes 
     arrange(desc(partner)) %>% 
-    # mutate(CommonName=paste0('\\textbf{',CommonName,'}')) %>% 
-    # mutate(ScientificName=paste0('\\emph{',ScientificName,'}')) %>% 
-    mutate(Species=paste0('\\textbf{',CommonName,'}',' (\\emph{',ScientificName,'})')) %>% select(-CommonName,-ScientificName) %>% 
-    relocate(partner,Species,Abstract) %>% 
-    kable(escape=FALSE,format = 'latex',col.names = c('Partner','Species Name','Description'), position = "h") %>% 
-    column_spec(1:2,width='3cm') %>%  
-    column_spec(3,width='10cm') #%>% kable_styling(latex_options="scale_down")
+    mutate(Species=paste0("\\textbf{",CommonName,"}"," (\\emph{",ScientificName,"})")) %>% 
+    select(-CommonName,-ScientificName) %>% 
+    relocate(partner,Species,Abstract) %>%
+    kable(escape=FALSE,format = 'latex',col.names = c('Partner','Species Name','Description'), position = "h") %>%
+    column_spec(1,width='1.5cm') %>% column_spec(2,width='4.5cm') %>% column_spec(3,width='10cm')
 }
 
 ```
@@ -512,25 +513,13 @@ if(nrow(vyCombos_vy)==0){
 
 \section*{Appendix 1: Predicted bees from your property}
 
-<!-- Appendix 1 : bees at you property currently (spp list) -->
-<!--     - table output from bee rport, with pheno figure -->
-
-<!-- `r paste0(suppBeeSpp$genSpp,collapse=', ')` -->
-
-<!-- `r for(i in sort(unique(suppBeeSpp$lookupFam))) paste0('\\textbf{Family: ',i,':}\\n','\\emph{',paste0(suppBeeSpp$genSpp[suppBeeSpp$lookupFam==i],collapse=', '),'}','\\n\\n')` -->
-
-<!-- `r paste0(unname(sapply(sort(unique(suppBeeSpp$lookupFam)),function(i) paste0('\\textbf{Family: ',i,':}\\n','\\emph{',paste0(suppBeeSpp$genSpp[suppBeeSpp$lookupFam==i],collapse=', '),'}'))), collapse='\\n')` -->
-
-<!-- `r paste0(unname(sapply(sort(unique(suppBeeSpp$lookupFam)),function(i) paste0('\\textbf{Family: ',i,':}\n','\\emph{',paste0(suppBeeSpp$genSpp[suppBeeSpp$lookupFam==i],collapse=', '),'}'))), collapse='\n')` -->
-
 ```{r allBees}
-suppBeeSpp %>% select(-contains('in')) %>% rename(Family=lookupFam) %>% 
-  group_by(Family) %>% summarize(`Bee Species`=paste0(genSpp,collapse=', '),N=n()) %>% 
-  ungroup() %>% mutate(Family=paste0(Family,'\n(',N,' species)')) %>% select(-N) %>% 
+suppBeeSpp %>% select(-contains('in')) %>% rename(Family=lookupFam) %>%
+  group_by(Family) %>% summarize(`Bee Species`=paste0(genSpp,collapse=', '),N=n()) %>%
+  ungroup() %>% mutate(Family=paste0(Family,'\n(',N,' species)')) %>% select(-N) %>%
   kable(escape=FALSE,format = 'latex',align = c('r','l')) %>%
-  column_spec(1,bold = TRUE,width='5cm') %>% 
+  column_spec(1,bold = TRUE,width='5cm') %>%
   column_spec(2,width='10cm',italic = TRUE)
-
 ```
 
 \clearpage
@@ -538,7 +527,6 @@ suppBeeSpp %>% select(-contains('in')) %>% rename(Family=lookupFam) %>%
 \begin{landscape}
 
 \section*{Appendix 2: Full super-bee plant list}
-
 
 ```{r fullPlantListSpp}
 if(nrow(superPl_spp)>0){
@@ -549,56 +537,10 @@ if(nrow(superPl_spp)>0){
             `Bloom Time`=paste0(Bloom_start,'-',Bloom_end),
             `Bee Species`=round(EstRich),`Rare Bees`=Nrare) %>%
   mutate(across(where(is.character),~ifelse(grepl('NA',.x),'-',.x))) %>% #Set NAs as dashes
-  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species (may include exotic or non-noxious weedy species)',longtable=TRUE) %>% 
-  column_spec(3,width='3cm') 
-
-} 
-```
-
-```{r fullPlantListGen}
-if(nrow(superPl_gen)>0){
-  
-  superPl_gen %>%
-    select(Common_name,plGenus,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
-    transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',plGenus,'})'),align='r'),
-              Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
-              `Bloom Time`=paste0(Bloom_start,'-',Bloom_end),
-              `Bee Species`=round(EstRich),`Rare Bees`=Nrare) %>% 
-    mutate(across(where(is.character),~ifelse(grepl('NA',.x),'-',.x))) %>% #Set NAs as dashes
-    kable(escape=FALSE,format = 'latex',caption = 'Super bee plant genera (may include exotic or non-noxious weedy species)', position = "h",longtable=TRUE) %>% 
-    column_spec(3,width='3cm') 
+  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species (may include exotic or non-noxious weedy species)',longtable=TRUE) %>%
+  column_spec(3,width='3cm')
 }
-
-if(nrow(superPl_spp)==0 & nrow(superPl_gen)==0){
-  print('No super bee plants found. See page 4 & Appendix 3 for plant species suggestions.')
-}
-```
-
-\clearpage
-
-\section*{Appendix 3: Recommended plants}
-
-Note: plants are shown in order of pollinator ranking (most-valuable to least-valuable)
-
-```{r allRecommendedPlants}
-data.frame(genSpp=plantScoresSpp$PlantGenus,newSpp=plantScoresSpp$newSpp) %>% 
-  left_join(select(plantList,Common_name,Scientific_name,isNative,Lifecycle,Bloom_start,Bloom_end,isNative:isWetland),
-            by=c('genSpp'='Scientific_name')) %>% 
-  mutate(Rank=1:n(),Plant=linebreak(paste0(Common_name,'\n(\\emph{',genSpp,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Exotic'),
-            Bloom_period=paste0(Bloom_start,'-',Bloom_end)) %>%
-  select(Rank,Plant,Origin,Lifecycle,Bloom_period,isLandscape:isWetland,newSpp) %>% 
-  rename(`Bloom Period`=Bloom_period,`Plant Species`=Plant,`New Bee Species`=newSpp) %>% 
-  mutate(across(contains('is'),~ifelse(.x,'X',''))) %>% 
-  rename_with(.fn = ~addRotate(gsub('is','',.x)),.cols=contains('is')) %>% 
-  arrange(Rank) %>% select(-Rank) %>% 
-  kable(escape=FALSE,format = 'latex',longtable=TRUE) %>% 
-  kable_styling(latex_options = c("repeat_header","scale_down")) %>%
-  column_spec(1,width='4cm',latex_valign = 'm') %>% #Warning: argument not atomic vector
-  column_spec(2:4,width='2cm',latex_valign = 'm') %>% #Warning: argument not atomic vector
-  column_spec(5:10,latex_valign = 'm') %>% 
-  column_spec(11,width='5cm',italic = TRUE) %>% 
-  add_header_above(c(" "=4,"Planting Type"=6),line = TRUE)
 ```
 
 \end{landscape}
+

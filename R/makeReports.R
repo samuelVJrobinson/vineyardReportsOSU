@@ -1,32 +1,47 @@
 #' @title Make vineyard reports
 #' @description Create vineyard reports from iNaturalist project data, bee/plant interactions, and plant list.
 #' 
-#' @param plantListCSV _Required_ - CSV of plants from Oregon Flora
-#' @param beeDataCSV _Required_ - CSV of bee/plant interactions from OBA
-#' @param iNatFolder _Required_ - Folder/subfolders containing vineyard iNaturalist CSV files
-#' @param reportFolder _Required_ - Folder for writing reports to
-#' @param vinePlDatCSV (Optional) output csv of all vineyard records. Skips writing if NA
-#' @param predictedBeesCSV (Optional) output csv of predicted bees for each vineyard. Skips writing if NA
-#' @param dataStoragePath (Optional) .Rdata storage path for internal function data. Skips writing if NA
-#' @param famGenPath (Optional) Path to bee genus-family lookup csv
-#' @param orCountyShpPath (Optional) Path to Oregon county polygons
-#' @param orEcoregShpPath (Optional) Path to Oregon ecoregion polyogons
-#' @param beeAbstractsPath (Optional) Path to bee/plant Abstract csv
+#' @param plantListCSV _Required_ - CSV of plants from Oregon Flora.
+#' @param beeDataCSV _Required_ - CSV of bee/plant interactions from OBA.
+#' @param beeDataColumns _Required_ - named character vector with column names from _beeDataCSV_ to use.
+#' @param iNatFolder _Required_ - Folder/subfolders containing vineyard iNaturalist CSV files.
+#' @param reportFolder _Required_ - Folder for writing reports to.
+#' @param vinePlDatCSV (Optional) output csv of all vineyard records. Skips writing if NA.
+#' @param predictedBeesCSV (Optional) output csv of predicted bees for each vineyard. Skips writing if NA.
+#' @param dataStoragePath (Optional) .Rdata storage path for internal function data. Skips writing if NA.
+#' @param famGenPath (Optional) Path to bee genus-family lookup csv. Uses internal if NA.
+#' @param orCountyShpPath (Optional) Path to Oregon county polygons. Uses internal if NA.
+#' @param orEcoregShpPath (Optional) Path to Oregon ecoregion polygons. Uses internal if NA.
+#' @param beeAbstractsPath (Optional) Path to bee/plant Abstract csv.
 #' 
 #' @return Nothing - writes to vinePlDatCSV, predictedBeesCSV, or dataStoragePath
 #' @export
+#' 
+#' @details 
+#' _beeDataColumns_ must have the following column names (see examples):
+#' _CollectorName, Sex, ForagePlant, Method, Month, Day, Year, County,_ 
+#' _ Genus, Species, Latitude, Longitude_
 #'
 #' @examples 
 #' 
+#' #Column from beeDataCSV to use
+#' bNames = c("CollectorName" = "Collectors.1", "Sex" = "sex", "ForagePlant" = "Associated.plant", 
+#'   "Method" = "Collectionmethod", "Month" = "MonthJul", "Day" = "MonthAb", 
+#'   "Year" = "Year.1", "County" = "County", "Genus" = "Genus", "Species" = "Species" ,
+#'   "Latitude" = "Dec..Lat.", "Longitude" = "Dec..Long.") 
+#' 
+#' #Create reports
 #' makeReports(plantListCSV = './cleanedPlantList2024.csv',
 #'   beeDataCSV = './OBA_2017_2023_v16Oct24.csv',
+#'   beeDataColumns = bNames, 
 #'   iNatFolder =  './iNat records',
 #'   reportFolder = './reports',
 #'   vinePlDatCSV = NA, predictedBeesCSV = NA, dataStoragePath = NA)
 #' 
 makeReports <- function(plantListCSV = NA, 
                         beeDataCSV = NA, 
-                        iNatFolder = NA, 
+                        beeDataColumns = NA,
+                        iNatFolder = NA,
                         reportFolder = NA,
                         vinePlDatCSV = NA,
                         predictedBeesCSV = NA,
@@ -52,14 +67,46 @@ makeReports <- function(plantListCSV = NA,
   library(bipartite)
   library(rmarkdown)
   
+  # # Debug
+  # plantListCSV <- 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\plant data\\cleanedPlantList2024.csv'
+  # beeDataCSV <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\bee data\\OBA_2017_2023_v16Oct24.csv"
+  # # beeData <- read.csv(beeDataCSV,stringsAsFactors = FALSE, strip.white = TRUE,na.strings=c('NA',''))
+  # beeDataColumns <- c("CollectorName" = "Collectors.1", "Sex" = "sex", "ForagePlant" = "Associated.plant",
+  #                     "Method" = "Collectionmethod", "Month" = "MonthJul", "Day" = "MonthAb",
+  #                     "Year" = "Year.1", "County" = "County", "Genus" = "Genus", "Species" = "Species" ,
+  #                     "Latitude" = "Dec..Lat.", "Longitude" = "Dec..Long.")
+  # iNatFolder <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\records"
+  # reportFolder <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\reports2026"
+  # vinePlDatCSV = NA;  predictedBeesCSV = NA; dataStoragePath = NA;  
+  # famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv" 
+  # orCountyShpPath = NA; orEcoregShpPath = NA; beeAbstractsPath = NA
+  
+  # #Older col names
+  # reqBeeCols <- c('Collectors.1','sex','Associated.plant','Collectionmethod',
+  #                 'MonthJul','MonthAb','Year.1','County','Genus','Species',
+  #                 'Dec..Lat.','Dec..Long.')
   
   #BS checking
   
   #Mandatory input
-  chkInputs <- sapply(c(plantListCSV,beeDataCSV,iNatFolder,reportFolder),function(x) !is.na(x)&file.exists(x))
+  chkInputs <- sapply(c(plantListCSV,beeDataCSV),function(x) !is.na(x)&file.exists(x))
   if(any(!chkInputs)){
-    stop(paste0('Input ', paste0(c('plantListCSV','beeDataCSV','iNatFolder','reportFolder')[!chkInputs],collapse=', '),' must be specified correctly. Check that path is specified and files exist'))
+    stop(paste0('Input ', paste0(c('plantListCSV','beeDataCSV')[!chkInputs],collapse=', '),' must be specified correctly. Check that path is specified and files exist'))
   } 
+  
+  chkInputs <- sapply(c(iNatFolder,reportFolder),function(x) !is.na(x)&dir.exists(x))
+  if(any(!chkInputs)){
+    stop(paste0('Input ', paste0(c('iNatFolder','reportFolder')[!chkInputs],collapse=', '),' must be specified correctly. Check that path is specified and directory exists.'))
+  } 
+  
+  #Required column names
+  reqBNames <- c("CollectorName","Sex","ForagePlant","Method","Month","Day","Year",
+                 "County","Genus","Species","Latitude","Longitude")
+  
+  if(any(any(is.na(beeDataColumns))|length(beeDataColumns)!=length(reqBNames)|any(!names(beeDataColumns) %in% reqBNames))){
+    stop(paste0('beeDataColumns must be a named character vector with the following names:\n',
+                paste0(reqBNames,collapse=', ')))
+  }
   
   #Optional input
   chkInputs <- sapply(c(famGenPath,orCountyShpPath,orEcoregShpPath,beeAbstractsPath),function(x) is.na(x)||file.exists(x))
@@ -72,11 +119,11 @@ makeReports <- function(plantListCSV = NA,
   
   #Bee family-genus lookup
   famGen <- read.csv(ifelse(is.na(famGenPath),system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE),famGenPath)) %>% 
-    rename(lookupFam=family) #Bee genus-family lookup table
+    rename(lookupFam=Family) #Bee genus-family lookup table
   
   # Load and clean up Oregon plant data -------------------------
   print('Loading regional plant data')
-  plantList <- read.csv(plantListCSV,strip.white = TRUE) 
+  plantList <- read.csv(plantListCSV,strip.white = TRUE,encoding = 'UTF-8') 
   
   reqPlantCols <- c('Scientific_name','Synonym','Common_name','Bloom_start',
                     'Bloom_end','Lifecycle','Origin','Garden_type','Family','PlantAbstract')
@@ -161,70 +208,76 @@ makeReports <- function(plantListCSV = NA,
   beeData <- read.csv(beeDataCSV,stringsAsFactors = FALSE,
                       strip.white = TRUE,na.strings=c('NA',''))
   
-  reqBeeCols <- c('Collectors.1','sex','Associated.plant','Collectionmethod',
-                  'MonthJul','MonthAb','Year.1','County','Genus','Species',
-                  'Dec..Lat.','Dec..Long.')
-  
-  if(any(!reqBeeCols %in% colnames(beeData))){
-    stop(paste0('Bee data must have the following columns:\n',paste0(reqBeeCols,collapse='\n')))
+  #Check input names
+  if(any(!reqBNames %in% names(beeDataColumns))|any(!names(beeDataColumns) %in% reqBNames)){
+    stop(paste0('beeDataColumns must be a named character vector with the following names:\n',
+                paste0(reqBNames,collapse=', '),'\n\nNames provided:\n',
+                paste0(names(beeDataColumns),collapse=', '),'\nSee example in help file'))
   }
   
-  beeData <- beeData %>% filter(!is.na(Genus)) %>%
-    transmute(recordedBy=Collectors.1,sex=sex,foragePlant=Associated.plant,
-              samplingProtocol=Collectionmethod,date=paste(MonthJul,MonthAb,Year.1),county=County,
-              order='Hymenoptera',family=NA,genus=Genus,species=Species,genSpp=NA,plantGenus=NA,plantSpp=NA,
-              lat=Dec..Lat.,lon=Dec..Long.) %>%
+  #Check input column names from csv
+  if(any(!beeDataColumns %in% names(beeData))){
+    stop(paste0('Column names not found in ',basename(beeDataCSV),':\n',
+                paste0(beeDataColumns[!beeDataColumns %in% names(beeData)],collapse='\n')))
+  }
+
+  beeData <- beeData %>% select(all_of(beeDataColumns)) %>% #Select/rename columns
+    filter(!is.na(Genus)) %>% #Filter empty records
+    transmute(CollectorName,Sex,ForagePlant,Method,Date=paste(Month,Day,Year),County,
+              Order='Hymenoptera',Family=NA,Genus,Species,genSpp=NA,plantGenus=NA,plantSpp=NA,
+              Latitude,Longitude) %>%
     mutate(across(where(is.character),~str_trim(.))) %>% #Trim whitespace across columns
-    mutate(date=as.Date(date,format='%B %d %Y')) %>% #Create date
-    mutate(genus=str_to_title(genus),family=famGen$lookupFam[match(genus,famGen$genus)]) %>%  #Capitalize spp names
-    mutate(family=ifelse(genus=='Anthophorini','Apidae',family),family=ifelse(genus=='Anthophorini',NA,family)) %>% #Fix tribe name
-    makeGenSpp(genus,species) #%>% #Make genSpp column
+    mutate(Date=as.Date(Date,format='%B %d %Y')) %>% #Create date
+    mutate(Genus=str_to_title(Genus),Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>%  #Capitalize spp names
+    mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
+    makeGenSpp(Genus,Species) #Make genSpp column
   
-  chooseThese <- grepl('\\s\\(.+$',beeData$foragePlant) #Gets rid of brackets+text after foragePlant
+  #KEEP GOING HERE
+  chooseThese <- grepl('\\s\\(.+$',beeData$ForagePlant) #Gets rid of brackets+text after ForagePlant
   if(any(chooseThese)){
-    message(paste0("Removed brackets and extra text after intial foragePlant name in bee list. Altered ",sum(chooseThese)," records from bee list\n",
-                   paste(apply(cbind(unique(na.omit(beeData$foragePlant[chooseThese])),
-                                     paste(gsub('\\s\\(.+$','',unique(na.omit(beeData$foragePlant[chooseThese]))))),1,
+    message(paste0("Removed brackets and extra text after intial ForagePlant name in bee list. Altered ",sum(chooseThese)," records from bee list\n",
+                   paste(apply(cbind(unique(na.omit(beeData$ForagePlant[chooseThese])),
+                                     paste(gsub('\\s\\(.+$','',unique(na.omit(beeData$ForagePlant[chooseThese]))))),1,
                                paste,collapse=' -> '),collapse='\n'),'\n'))
-    beeData <- beeData %>% mutate(foragePlant=gsub('\\s\\(.+$','',foragePlant)) 
+    beeData <- beeData %>% mutate(ForagePlant=gsub('\\s\\(.+$','',ForagePlant)) 
   }
   
-  chooseThese <- grepl('(\\s.\\s.*$|\\s.$)',beeData$foragePlant)#Gets rid of hybrid x marks
+  chooseThese <- grepl('(\\s.\\s.*$|\\s.$)',beeData$ForagePlant)#Gets rid of hybrid x marks
   if(any(chooseThese)){
-    message(paste0("Hybrid names, x marks, or other non-standard text found in foragePlant names in bee list. Altered ",sum(chooseThese)," records from bee list\n",
-                   paste(apply(cbind(unique(na.omit(beeData$foragePlant[chooseThese])),
-                                     paste(gsub('(\\s.\\s.*$|\\s.$)','',unique(na.omit(beeData$foragePlant[chooseThese]))))),1,
+    message(paste0("Hybrid names, x marks, or other non-standard text found in ForagePlant names in bee list. Altered ",sum(chooseThese)," records from bee list\n",
+                   paste(apply(cbind(unique(na.omit(beeData$ForagePlant[chooseThese])),
+                                     paste(gsub('(\\s.\\s.*$|\\s.$)','',unique(na.omit(beeData$ForagePlant[chooseThese]))))),1,
                                paste,collapse=' -> '),collapse='\n'),'\n'))
-    beeData <- beeData %>% mutate(foragePlant=gsub('(\\s.\\s.*$|\\s.$)','',foragePlant)) 
+    beeData <- beeData %>% mutate(ForagePlant=gsub('(\\s.\\s.*$|\\s.$)','',ForagePlant)) 
   }
   
   
-  chooseThese <- grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',beeData$foragePlant) #Gets rid of higher-level names
+  chooseThese <- grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',beeData$ForagePlant) #Gets rid of higher-level names
   if(any(chooseThese)){
-    message(paste0("Orders, families, or other non-genus groups found in foragePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
-                   paste(unique(na.omit(beeData$foragePlant[chooseThese])),collapse='\n'),'\n'))
-    beeData <- beeData %>% mutate(foragePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',foragePlant),NA,foragePlant)) 
+    message(paste0("Orders, families, or other non-genus groups found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
+                   paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
+    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) 
   }
   
-  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$foragePlant) #Gets rid of lists of foragePlant species
+  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of lists of ForagePlant species
   if(any(chooseThese)){
-    message(paste0("Lists of plants or triple-name varietals found in foragePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
-                   paste(unique(na.omit(beeData$foragePlant[chooseThese])),collapse='\n'),'\n'))
-    beeData <- beeData %>% mutate(foragePlant=ifelse(grepl('(,|^\\S+\\s\\S+\\s.*$)',foragePlant),NA,foragePlant)) 
+    message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
+                   paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
+    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(,|^\\S+\\s\\S+\\s.*$)',ForagePlant),NA,ForagePlant)) 
   }
   
   beeData <- beeData %>% 
-    mutate(foragePlant=case_when( #Get rid of weird plant records
-      grepl('^(N|n)et\\s*$',foragePlant) ~ NA, #"Net"
-      !grepl('\\s',foragePlant) & !is.na(foragePlant) ~ paste0(foragePlant,' spp.'), #Adds "spp." to singletons
-      .default = gsub('sp+\\.*$','spp.',as.character(foragePlant)
+    mutate(ForagePlant=case_when( #Get rid of weird plant records
+      grepl('^(N|n)et\\s*$',ForagePlant) ~ NA, #"Net"
+      !grepl('\\s',ForagePlant) & !is.na(ForagePlant) ~ paste0(ForagePlant,' spp.'), #Adds "spp." to singletons
+      .default = gsub('sp+\\.*$','spp.',as.character(ForagePlant)
       ))) %>% ungroup() %>% 
-    mutate(foragePlant=replaceSynonyms(foragePlant,plantList$Scientific_name,plantList$Synonym)) %>% #Replace plant synonyms
-    mutate(plantGenus=gsub("\\s.+$","",foragePlant), #Separates foragePlant into genus and spp
-           plantSpp=ifelse(grepl(" ",foragePlant),gsub("^\\w+\\s","",foragePlant),NA)) %>%
+    mutate(ForagePlant=replaceSynonyms(ForagePlant,plantList$Scientific_name,plantList$Synonym)) %>% #Replace plant synonyms
+    mutate(plantGenus=gsub("\\s.+$","",ForagePlant), #Separates ForagePlant into genus and spp
+           plantSpp=ifelse(grepl(" ",ForagePlant),gsub("^\\w+\\s","",ForagePlant),NA)) %>%
     mutate(plantSpp=ifelse(plantSpp=='spp.',NA,plantSpp)) %>%
-    filter(!is.na(lat)&!is.na(lon)) %>%
-    st_as_sf(coords=c('lon','lat')) %>% #Set lon and lat as coordinates
+    filter(!is.na(Latitude)&!is.na(Longitude)) %>%
+    st_as_sf(coords=c('Longitude','Latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #Transform to Oregon Lambert system
   
@@ -283,9 +336,9 @@ makeReports <- function(plantListCSV = NA,
   mi2km <- 1.609344 #Miles per kilometer
   
   #Common names for bee families
-  commonFam <- data.frame(family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
+  commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
                           common=c('Mining bees','Social bees','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
-    mutate(plotLab=paste0(family,'\n(',common,')'))
+    mutate(plotLab=paste0(Family,'\n(',common,')'))
   
   #Load and clean up iNaturalist records ------------------------
   print('Loading iNaturalist records')
@@ -344,45 +397,45 @@ makeReports <- function(plantListCSV = NA,
     }
     
     #dataframe: Bee spp -> flower spp
-    sppList <- d %>% filter(!is.na(species),!is.na(plantSpp)) %>%
-      select(genSpp,foragePlant) %>% na.omit() %>%
-      group_by(foragePlant) %>%
+    sppList <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
+      select(genSpp,ForagePlant) %>% na.omit() %>%
+      group_by(ForagePlant) %>%
       summarize(beeSpp=paste0(genSpp,collapse = ','))
     
     #dataframe: Bee spp -> plant genera (plant spp unknown)
-    genList <- d %>% filter(!is.na(species)) %>%
+    genList <- d %>% filter(!is.na(Species)) %>%
       select(genSpp,plantGenus) %>% na.omit() %>%
       group_by(plantGenus) %>%
       summarize(beeSpp=paste0(unique(genSpp),collapse = ',')) %>%
-      rename(foragePlant=plantGenus)
+      rename(ForagePlant=plantGenus)
     
     #matrix: Bee spp -> plant spp (all)
-    ntwk_all <- d %>% filter(!is.na(species),!is.na(plantSpp)) %>%
-      select(genSpp,foragePlant) %>% na.omit() %>%
+    ntwk_all <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
+      select(genSpp,ForagePlant) %>% na.omit() %>%
       left_join(select(pList,Scientific_name,isWeedy,isNoxious,isNative),
-                by = c('foragePlant'='Scientific_name')) %>%
-      count(genSpp,foragePlant) %>%
-      pivot_wider(names_from=foragePlant,values_from=n,values_fill = 0) %>%
+                by = c('ForagePlant'='Scientific_name')) %>%
+      count(genSpp,ForagePlant) %>%
+      pivot_wider(names_from=ForagePlant,values_from=n,values_fill = 0) %>%
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
     #matrix: Bee spp -> plant spp (nonweedy natives only)  - recommended plant spp for growers
-    ntwk_noWeed <- d %>% filter(!is.na(species),!is.na(plantSpp)) %>%
-      select(genSpp,foragePlant) %>% na.omit() %>%
+    ntwk_noWeed <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
+      select(genSpp,ForagePlant) %>% na.omit() %>%
       left_join(select(pList,Scientific_name,isWeedy,isNoxious,isNative),
-                by = c('foragePlant'='Scientific_name')) %>%
+                by = c('ForagePlant'='Scientific_name')) %>%
       filter(!is.na(isWeedy),!isNoxious,!isWeedy,isNative) %>%
-      count(genSpp,foragePlant) %>%
-      pivot_wider(names_from=foragePlant,values_from=n,values_fill = 0) %>%
+      count(genSpp,ForagePlant) %>%
+      pivot_wider(names_from=ForagePlant,values_from=n,values_fill = 0) %>%
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
     #matrix: Bee genus -> plant genus (all)
-    ntwk_gen_all <- d %>% select(genus,plantGenus) %>% na.omit() %>% 
-      count(genus,plantGenus) %>%
+    ntwk_gen_all <- d %>% select(Genus,plantGenus) %>% na.omit() %>% 
+      count(Genus,plantGenus) %>%
       pivot_wider(names_from=plantGenus,values_from=n,values_fill = 0) %>%
-      column_to_rownames('genus') %>% as.matrix() %>% t()
+      column_to_rownames('Genus') %>% as.matrix() %>% t()
     
-    #matrix: Bee species -> plant genus (all) 
-    ntwk_genSpp_all <- d %>% filter(!is.na(species)) %>%
+    #matrix: Bee Species -> plant genus (all) 
+    ntwk_genSpp_all <- d %>% filter(!is.na(Species)) %>%
       select(genSpp,plantGenus) %>% na.omit() %>%
       count(genSpp,plantGenus) %>%
       pivot_wider(names_from=plantGenus,values_from=n,values_fill = 0) %>%
@@ -392,11 +445,11 @@ makeReports <- function(plantListCSV = NA,
     plantList2 <- pList %>% select(Scientific_name,isWeedy,isNoxious,isNative) %>% 
       mutate(Genus_name=gsub('\\s.*$','',Scientific_name)) %>% 
       group_by(Genus_name) %>% 
-      #"Abraham's bargain": is there at least 1 nonweedy, nonnoxious, and native species?
+      #"Abraham's bargain": is there at least 1 nonweedy, nonnoxious, and native Species?
       summarize(isNonWeedy=any(!isWeedy),isNonNoxious=any(!isNoxious),isNative=any(isNative))
     
-    #matrix: Bee species -> plant genus (all) - Recommended plant species for growers
-    ntwk_genSpp_noWeed <- d %>% filter(!is.na(species)) %>%
+    #matrix: Bee Species -> plant genus (all) - Recommended plant Species for growers
+    ntwk_genSpp_noWeed <- d %>% filter(!is.na(Species)) %>%
       select(genSpp,plantGenus) %>% na.omit() %>%
       left_join(plantList2,by = c('plantGenus'='Genus_name')) %>%
       filter(!is.na(isNonWeedy),isNonNoxious,isNonWeedy,isNative) %>%
@@ -405,7 +458,7 @@ makeReports <- function(plantListCSV = NA,
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
     #Which bees are rare? - using a simple definition (>median)
-    rareBees <- d %>% filter(!is.na(species)) %>% 
+    rareBees <- d %>% filter(!is.na(Species)) %>% 
       count(genSpp) %>% arrange(desc(n)) %>%
       filter(n<median(n))
     
@@ -490,9 +543,9 @@ makeReports <- function(plantListCSV = NA,
     #Lists of species and genus (subset of regional lists)
     m <- list(
       #List of plant species along with associated bee species
-      'sppList'= filter(erNtwk[[vyEcoreg]]$sppList,foragePlant %in% vyPlantSpp),
+      'sppList'= filter(erNtwk[[vyEcoreg]]$sppList,ForagePlant %in% vyPlantSpp),
       #List of plant genera along with associated bee species
-      'genList'= filter(erNtwk[[vyEcoreg]]$genList,foragePlant %in% vyPlantGen) 
+      'genList'= filter(erNtwk[[vyEcoreg]]$genList,ForagePlant %in% vyPlantGen) 
     )
     
     if(any(nrow(m)==0)) message(paste('No plants from',vy,'vineyard found in',vyEcoreg,'plant list\n'))
@@ -791,7 +844,7 @@ makeReports <- function(plantListCSV = NA,
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
       if(!any(!cln)) warning('Accessory files not removed. Manual cleanup needed afterwards.')
-      print(paste0('Finished report ',names(vyNetworks)[vy]))
+      message(paste0('Finished report ',names(vyNetworks)[vy]))
     }
     
   }
