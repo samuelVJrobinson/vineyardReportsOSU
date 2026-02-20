@@ -376,6 +376,15 @@ makeReports <- function(plantListCSV = NA,
     message(paste0(sum(is.na(vinePlDat$ecoreg)),' samples not matching Oregon ecoregions discarded\n'))
     vinePlDat <- vinePlDat %>% filter(!is.na(ecoreg))
   }
+  
+  vyNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Unique vineyard names from csv paths
+  
+  if(any(!vyNames %in% unique(vinePlDat$vineyard))){ #If there are any vineyards that have been completely filtered out 
+    message(paste0('Some vineyards were not present after iNat record filtering. Check to make sure the locations of iNat records are within Oregon counties/ecoregions, and that they contain plant genus information:\n\n',
+                   paste(vyNames[!vyNames %in% unique(vinePlDat$vineyard)],collapse='\n')))
+    vyNames <- unique(vinePlDat$vineyard) #Rewrites vineyard names if some are missing
+  }
+  
   if(!is.na(vinePlDatCSV)){ #If path provided
     #Write all iNat records to single csv
     vinePlDat %>% st_transform(4269) %>% 
@@ -522,7 +531,7 @@ makeReports <- function(plantListCSV = NA,
     set_names(c(orEcoReg$name,'ALL'))
   
   #Get unique interaction matrices for each unique vineyard
-  vyNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Unique vineyard names from csv paths
+  
   
   #Get networks for individual vineyards from regional data
   getVyNtwks <- function(vy,vpDat,erNtwk){ #Check variable scoping...
