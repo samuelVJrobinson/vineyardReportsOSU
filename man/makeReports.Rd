@@ -7,6 +7,7 @@
 makeReports(
   plantListCSV = NA,
   beeDataCSV = NA,
+  beeDataColumns = NA,
   iNatFolder = NA,
   reportFolder = NA,
   vinePlDatCSV = NA,
@@ -19,27 +20,29 @@ makeReports(
 )
 }
 \arguments{
-\item{plantListCSV}{\emph{Required} - CSV of plants from Oregon Flora}
+\item{plantListCSV}{\emph{Required} - CSV of plants from Oregon Flora.}
 
-\item{beeDataCSV}{\emph{Required} - CSV of bee/plant interactions from OBA}
+\item{beeDataCSV}{\emph{Required} - CSV of bee/plant interactions from OBA.}
 
-\item{iNatFolder}{\emph{Required} - Folder/subfolders containing vineyard iNaturalist CSV files}
+\item{beeDataColumns}{\emph{Required} - named character vector with column names from \emph{beeDataCSV} to use.}
 
-\item{reportFolder}{\emph{Required} - Folder for writing reports to}
+\item{iNatFolder}{\emph{Required} - Folder/subfolders containing vineyard iNaturalist CSV files.}
 
-\item{vinePlDatCSV}{(Optional) output csv of all vineyard records. Skips writing if NA}
+\item{reportFolder}{\emph{Required} - Folder for writing reports to.}
 
-\item{predictedBeesCSV}{(Optional) output csv of predicted bees for each vineyard. Skips writing if NA}
+\item{vinePlDatCSV}{(Optional) output csv of all vineyard records. Skips writing if NA.}
 
-\item{dataStoragePath}{(Optional) .Rdata storage path for internal function data. Skips writing if NA}
+\item{predictedBeesCSV}{(Optional) output csv of predicted bees for each vineyard. Skips writing if NA.}
 
-\item{famGenPath}{(Optional) Path to bee genus-family lookup csv}
+\item{dataStoragePath}{(Optional) .Rdata storage path for internal function data. Skips writing if NA.}
 
-\item{orCountyShpPath}{(Optional) Path to Oregon county polygons}
+\item{famGenPath}{(Optional) Path to bee genus-family lookup csv. Uses internal if NA.}
 
-\item{orEcoregShpPath}{(Optional) Path to Oregon ecoregion polyogons}
+\item{orCountyShpPath}{(Optional) Path to Oregon county polygons. Uses internal if NA.}
 
-\item{beeAbstractsPath}{(Optional) Path to bee/plant Abstract csv}
+\item{orEcoregShpPath}{(Optional) Path to Oregon ecoregion polygons. Uses internal if NA.}
+
+\item{beeAbstractsPath}{(Optional) Path to bee/plant Abstract csv.}
 }
 \value{
 Nothing - writes to vinePlDatCSV, predictedBeesCSV, or dataStoragePath
@@ -47,10 +50,23 @@ Nothing - writes to vinePlDatCSV, predictedBeesCSV, or dataStoragePath
 \description{
 Create vineyard reports from iNaturalist project data, bee/plant interactions, and plant list.
 }
+\details{
+\emph{beeDataColumns} must have the following column names (see examples):
+\emph{CollectorName, Sex, ForagePlant, Method, Month, Day, Year, County,}
+_ Genus, Species, Latitude, Longitude_
+}
 \examples{
 
+#Column from beeDataCSV to use
+bNames = c("CollectorName" = "Collectors.1", "Sex" = "sex", "ForagePlant" = "Associated.plant", 
+  "Method" = "Collectionmethod", "Month" = "MonthJul", "Day" = "MonthAb", 
+  "Year" = "Year.1", "County" = "County", "Genus" = "Genus", "Species" = "Species" ,
+  "Latitude" = "Dec..Lat.", "Longitude" = "Dec..Long.") 
+
+#Create reports
 makeReports(plantListCSV = './cleanedPlantList2024.csv',
   beeDataCSV = './OBA_2017_2023_v16Oct24.csv',
+  beeDataColumns = bNames, 
   iNatFolder =  './iNat records',
   reportFolder = './reports',
   vinePlDatCSV = NA, predictedBeesCSV = NA, dataStoragePath = NA)
