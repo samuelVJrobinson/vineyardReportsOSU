@@ -67,24 +67,8 @@ makeReports <- function(plantListCSV = NA,
   library(bipartite)
   library(rmarkdown)
   
-  # # Debug
-  # plantListCSV <- 'C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\plant data\\cleanedPlantList2024.csv'
-  # beeDataCSV <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\bee data\\OBA_2017_2023_v16Oct24.csv"
-  # # beeData <- read.csv(beeDataCSV,stringsAsFactors = FALSE, strip.white = TRUE,na.strings=c('NA',''))
-  # beeDataColumns <- c("CollectorName" = "Collectors.1", "Sex" = "sex", "ForagePlant" = "Associated.plant",
-  #                     "Method" = "Collectionmethod", "Month" = "MonthJul", "Day" = "MonthAb",
-  #                     "Year" = "Year.1", "County" = "County", "Genus" = "Genus", "Species" = "Species" ,
-  #                     "Latitude" = "Dec..Lat.", "Longitude" = "Dec..Long.")
-  # iNatFolder <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\data\\records"
-  # reportFolder <- "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\2024\\OSU Vineyard Project 2024\\reports2026"
-  # vinePlDatCSV = NA;  predictedBeesCSV = NA; dataStoragePath = NA;  
-  # famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv" 
-  # orCountyShpPath = NA; orEcoregShpPath = NA; beeAbstractsPath = NA
-  
-  # #Older col names
-  # reqBeeCols <- c('Collectors.1','sex','Associated.plant','Collectionmethod',
-  #                 'MonthJul','MonthAb','Year.1','County','Genus','Species',
-  #                 'Dec..Lat.','Dec..Long.')
+  #Convenience function
+  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:' \\-\\.]",'*',x) #Gets rid of nonstandard characters that screw up LaTeX reports
   
   #BS checking
   
@@ -136,6 +120,7 @@ makeReports <- function(plantListCSV = NA,
   if(any(chooseThese)){
     message(paste0("Plant names with 'var' or 'ssp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
                    paste(plantList$Scientific_name[chooseThese],collapse = '\n'),'\n'))
+    Sys.sleep(1)
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
@@ -143,6 +128,7 @@ makeReports <- function(plantListCSV = NA,
   if(any(chooseThese)){
     message(paste0("Orders, families, or other non-genus groups found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
                    paste(plantList$Scientific_name[chooseThese],collapse = '\n'),'\n'))
+    Sys.sleep(1)
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
@@ -150,8 +136,10 @@ makeReports <- function(plantListCSV = NA,
   if(any(chooseThese)){
     message(paste0("Triple names (possibly varieties or culivars) found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
                    paste(plantList$Scientific_name[chooseThese],collapse = '\n'),'\n'))
+    Sys.sleep(1)
     plantList <- plantList %>% filter(!chooseThese)  
-    # # Could fix by removing the end of triple-names (varieties) - leads to problems with duplicate plant names - let the user figure this out
+    # Could fix by removing the end of triple-names (varieties), but leads to problems with duplicate plant names 
+    # - let the user figure this out
     # mutate(Scientific_name=sapply(strsplit(Scientific_name,' '),function(x) paste0(x[1:pmin(length(x),2)],collapse=' '))) 
   }
   
@@ -160,6 +148,7 @@ makeReports <- function(plantListCSV = NA,
     mutate(Scientific_name=ifelse(grepl('\\s',Scientific_name),Scientific_name,paste0(Scientific_name,' spp.'))) %>% #Adds spp to genus
     mutate(Synonym=ifelse(grepl('.spp',Scientific_name)&Synonym!='',paste0(Synonym,' spp.'),Synonym)) %>% #Adds spp to Synonym 
     mutate(Common_name=str_to_title(gsub(',.*','',Common_name))) %>% #Removes all but first common name, and capitalizes
+    mutate(across(c(Scientific_name,Common_name,PlantAbstract),~rmBadChar(.x))) %>% #Get rid of nonstandard punctuation marks
     mutate(Lifecycle=str_to_title(Lifecycle)) %>% 
     rename(isNoxious=Noxious_weed,isWeedy=Weedy_species) 
   
@@ -169,6 +158,7 @@ makeReports <- function(plantListCSV = NA,
   if(length(noGen)>0){
     message(paste0('Genus-level information for ',length(noGen),' listed plant species missing. Adding missing genera:',
                    paste(c('\n',noGen),collapse = '\n'),'\n'))
+    Sys.sleep(1)
     cstring <- function(x) paste0(unique(unlist(strsplit(x,', '))),collapse=', ')
     
     #Gets plants that don't have a genus-level record, and amalgamates lifecycle, origin, and garden info
@@ -232,13 +222,13 @@ makeReports <- function(plantListCSV = NA,
     mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
     makeGenSpp(Genus,Species) #Make genSpp column
   
-  #KEEP GOING HERE
   chooseThese <- grepl('\\s\\(.+$',beeData$ForagePlant) #Gets rid of brackets+text after ForagePlant
   if(any(chooseThese)){
     message(paste0("Removed brackets and extra text after intial ForagePlant name in bee list. Altered ",sum(chooseThese)," records from bee list\n",
                    paste(apply(cbind(unique(na.omit(beeData$ForagePlant[chooseThese])),
                                      paste(gsub('\\s\\(.+$','',unique(na.omit(beeData$ForagePlant[chooseThese]))))),1,
                                paste,collapse=' -> '),collapse='\n'),'\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% mutate(ForagePlant=gsub('\\s\\(.+$','',ForagePlant)) 
   }
   
@@ -248,6 +238,7 @@ makeReports <- function(plantListCSV = NA,
                    paste(apply(cbind(unique(na.omit(beeData$ForagePlant[chooseThese])),
                                      paste(gsub('(\\s.\\s.*$|\\s.$)','',unique(na.omit(beeData$ForagePlant[chooseThese]))))),1,
                                paste,collapse=' -> '),collapse='\n'),'\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% mutate(ForagePlant=gsub('(\\s.\\s.*$|\\s.$)','',ForagePlant)) 
   }
   
@@ -256,6 +247,7 @@ makeReports <- function(plantListCSV = NA,
   if(any(chooseThese)){
     message(paste0("Orders, families, or other non-genus groups found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) 
   }
   
@@ -263,6 +255,7 @@ makeReports <- function(plantListCSV = NA,
   if(any(chooseThese)){
     message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(,|^\\S+\\s\\S+\\s.*$)',ForagePlant),NA,ForagePlant)) 
   }
   
@@ -276,6 +269,7 @@ makeReports <- function(plantListCSV = NA,
     mutate(plantGenus=gsub("\\s.+$","",ForagePlant), #Separates ForagePlant into genus and spp
            plantSpp=ifelse(grepl(" ",ForagePlant),gsub("^\\w+\\s","",ForagePlant),NA)) %>%
     mutate(plantSpp=ifelse(plantSpp=='spp.',NA,plantSpp)) %>%
+    mutate(across(c(ForagePlant),~rmBadChar(.x))) %>% #Get rid of remaining nonstandard characters
     filter(!is.na(Latitude)&!is.na(Longitude)) %>%
     st_as_sf(coords=c('Longitude','Latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
@@ -317,6 +311,7 @@ makeReports <- function(plantListCSV = NA,
   beeData$county <- orCounties$altName[st_within_fast(beeData,orCounties)] #Overwrite county
   if(any(is.na(beeData$county))){
     message(paste0(sum(is.na(beeData$county)),' bee samples not within Oregon counties discarded\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% filter(!is.na(county))
   }
   
@@ -324,6 +319,7 @@ makeReports <- function(plantListCSV = NA,
   beeData$ecoreg <- gsub('\n',' ',orEcoReg$name)[st_within_fast(beeData,orEcoReg)] #Get rid of carriage return in ecoregion name
   if(any(is.na(beeData$ecoreg))){
     message(paste0(sum(is.na(beeData$ecoreg)),' bee samples not within Oregon ecoregions discarded\n'))
+    Sys.sleep(1)
     beeData <- beeData %>% filter(!is.na(ecoreg))
   }
   
@@ -361,6 +357,7 @@ makeReports <- function(plantListCSV = NA,
     filter(!grepl('eae$',scientific_name)) %>% #Removes family
     filter(!scientific_name %in% unique(beeData$genSpp)) %>% #Removes bee names (didn't record plant)
     mutate(scientific_name=gsub('(\\s.\\s.*$|\\s.$)','',scientific_name)) %>% #Removes hybrid "x" markings
+    mutate(across(c(scientific_name),~rmBadChar(.x))) %>% #Get rid of remaining nonstandard characters
     mutate(scientific_name=ifelse(!grepl('\\s',scientific_name),paste0(scientific_name,' spp.'),scientific_name)) %>% #Adds spp. to end of genus
     mutate(scientific_name=sapply(strsplit(scientific_name,'\\s'),function(x) paste0(x[1:2],collapse=' '))) %>% #Drops last word in triple names (e.g. Eriophyllum lanatum integrifolium -> Eriophyllum lanatum)
     mutate(scientific_name=replaceSynonyms(scientific_name,plantList$Scientific_name,plantList$Synonym)) %>% #Replace plant synonyms
@@ -374,6 +371,7 @@ makeReports <- function(plantListCSV = NA,
   vinePlDat$ecoreg <- gsub('\n',' ',orEcoReg$name)[st_within_fast(vinePlDat,orEcoReg)] #Get rid of carriage return in ecoregion name
   if(any(is.na(vinePlDat$ecoreg))){
     message(paste0(sum(is.na(vinePlDat$ecoreg)),' samples not matching Oregon ecoregions discarded\n'))
+    Sys.sleep(1)
     vinePlDat <- vinePlDat %>% filter(!is.na(ecoreg))
   }
   
@@ -382,6 +380,7 @@ makeReports <- function(plantListCSV = NA,
   if(any(!vyNames %in% unique(vinePlDat$vineyard))){ #If there are any vineyards that have been completely filtered out 
     message(paste0('Some vineyards were not present after iNat record filtering. Check to make sure the locations of iNat records are within Oregon counties/ecoregions, and that they contain plant genus information:\n\n',
                    paste(vyNames[!vyNames %in% unique(vinePlDat$vineyard)],collapse='\n')))
+    Sys.sleep(1)
     vyNames <- unique(vinePlDat$vineyard) #Rewrites vineyard names if some are missing
   }
   
@@ -477,6 +476,7 @@ makeReports <- function(plantListCSV = NA,
       } else{
         message('No non-weedy species plant data for ',nm,'\n')  
       }
+      Sys.sleep(1)
       topSpp <- topGen <- NA
     } else {
       #Top plant species for ecoregion (based on Chao1 richness from plant spp - bee spp network)
@@ -501,6 +501,7 @@ makeReports <- function(plantListCSV = NA,
       } else{
         message('No non-weedy plant genus data for ',nm,'\n')  
       }
+      Sys.sleep(1)
       topGen <- NA
     } else {
       #Top plant genera (Chao1 richness from plant genus - bee spp network)
@@ -557,7 +558,10 @@ makeReports <- function(plantListCSV = NA,
       'genList'= filter(erNtwk[[vyEcoreg]]$genList,ForagePlant %in% vyPlantGen) 
     )
     
-    if(any(nrow(m)==0)) message(paste('No plants from',vy,'vineyard found in',vyEcoreg,'plant list\n'))
+    if(any(nrow(m)==0)){
+      message(paste('No plants from',vy,'vineyard found in',vyEcoreg,'plant list\n'))
+      Sys.sleep(1)
+    }
     
     #Matrices of: full vineyard network + Non-weedy vineyard network
     n <- lapply(list('ntwk'=erNtwk[[vyEcoreg]]$ntwk_all, #Uses ecoregion network
@@ -746,7 +750,8 @@ makeReports <- function(plantListCSV = NA,
   beeAbstractsPath <- ifelse(is.na(beeAbstractsPath),system.file('extdata','Bee_Abstracts.csv',package=packageName(),mustWork = TRUE),beeAbstractsPath)
   
   beeAbstracts <- read.csv(beeAbstractsPath) %>% 
-    mutate(across(everything(),~trimws(gsub('  ',' ',.x)))) #Get rid of extra whitespace and double spaces
+    mutate(across(everything(),~trimws(gsub('  ',' ',.x)))) %>% #Get rid of extra whitespace and double spaces
+    mutate(across(everything(),~rmBadChar(.x))) #Get rid of remaining nonstandard characters
   
   #Join bee/plant abstracts on to unique bees/plants
   vyCombos <- vyCombos %>% left_join(beeAbstracts,by=c('bee'='Bee_Scientific_Name')) %>% 
