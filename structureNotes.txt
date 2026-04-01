@@ -1,0 +1,61 @@
+Notes on makeReports.R - written Apr 1 2026, SR
+
+* Load and clean Oregon plant data
+  - BS checking
+  - Fix naming
+    - Exclude "var" or "spp"
+    - Exclude non-genus names
+    - Exclude triple names
+  - Other cleanup, organize plant traits, separate into native/nonnative
+* Load and clean Oregon bee data
+  - BS checking
+  - Fix naming (both bee and plant columns) - see above
+  - Other cleanup
+    - Filter unusual plant records, nonstandard characters, missing location data
+* Load spatial data
+  - Oregon counties, ecoregions
+  - Join ecoregion/county data to bee data (uses st_within_fast()) 
+  - UPDATE: change this to NA ecoregions + States/Provinces, make it work outside of OR
+* Load and clean iNaturalist vineyard records
+  - BS checking
+  - Cleans plant names - see above
+  - Join ecoregion/county data to iNat data
+  - UPDATE: change this to pull directly from iNat projects using API
+* Make regional and vineyard-level (subset) networks
+  - function: getRegNtwks() - get networks + recommended plants for each region
+      - Interaction matrices:
+      - ntwk_all = bee spp -> plant spp
+      - ntwk_noWeed = bee spp -> plant spp (nonweedy native, i.e. recommended plants) 
+      - ntwk_gen_all = bee genus -> plant genus
+      - ntwk_genSpp_all = bee spp -> plant genus
+      - ntwk_genSpp_noWeed = bee spp -> plant genus (nonweedy native, i.e. recommended plants)
+    - Get richness estimates per plant spp (if ntwk_all isn't empty), assign rarity, counts 
+      - Creates "quality" rankings based on rare bees & overall visits - *NOTE: should visits be scaled to plant density?*
+    - Same as above, but for ntwk_genSpp_noWeed
+  - function: getVyNtwks() - infers vineyard-level network from iNat plant list + regional network
+    - Subsets all bee-plant networks created by getRegNtwks()
+* Creates "highlights" list
+  - Highlights list 1: Generates pairs of unique (not really...) bee-plant interactions for different vineyards - originally supposed to be for marketing
+    - Joins plant/bee "abstracts" (written by Linc) onto records for report
+  - Highlights list 2: (highlighted bees don't visit highlighted plants) not used
+* Assembles reports for each vineyard 
+  - Note: must have a large enough network size - reports look weird, and some functions don't work if too small
+  - Feeds network info + LaTeX template into render()
+  - Report: 
+    - pg1: # of bee plants, predicted bees per family per year
+    - pg2: super bee plants
+    - pg3: location of super bee plants
+    - pg4: recommended native plants + planting type
+    
+    
+* Goal: 2 people from BC, 1 from Washington
+  - For now: use traits from Oregon plant list for all areas - fill in "NOT FOUND" for empty fields
+  - Some of the default data should NOT be automatically filled - use "NOT FOUND" or similar 
+  - Avoid gap-filling information from genus-level to spp-level
+  - Remove garden types for now
+  - Check whether recommended plants are native-only + remove "Exotic" super bee plants
+  
+* What I need currently
+  - Set of North American ecoregion shapefiles for entire study area (Washington, BC, Oregon): https://www.epa.gov/eco-research/ecoregions-north-america
+  - Set of latest occurrence data
+  - List of recent iNat data 
