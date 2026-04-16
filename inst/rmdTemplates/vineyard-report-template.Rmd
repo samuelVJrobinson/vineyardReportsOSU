@@ -231,7 +231,7 @@ vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-viney
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
     \node[anchor=north west,rectangle,,yshift=0cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../extdata/OSU_ES-MM_horizontal_1C_W.png}};
     \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-4.8cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=4.5cm]{../extdata/OregonBeeAtlas-Logo-Final-03.png}};
+    \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=4.5cm]{../extdata/Oregon-BeeAtlas-Logo.png}};
     \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[width=3.3cm]{../extdata/OregonFlora_logo.jpg}};
     
 \end{tikzpicture}
