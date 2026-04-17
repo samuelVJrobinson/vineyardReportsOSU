@@ -304,10 +304,10 @@ makeReports <- function(plantListCSV = NA,
   
   #Gets path from internal data if NA
   ecoregShpPath <- ifelse(is.na(ecoregShpPath),system.file('extdata','or_eco_l3.shp',package=packageName(),mustWork = TRUE),ecoregShpPath)
-  ecoReg <- st_read(ecoregShpPath,quiet = TRUE)
+  ecoReg <- st_read(ecoregShpPath,quiet = TRUE) %>% rename(geometry=geom)
   
   if(any(!c('EcoRegName','ProvStateName','CountryName','geometry') %in% colnames(ecoReg))){
-    stop(paste0('Ecoregion shapefiles must have the following columns:\n',paste0('EcoRegName','ProvStateName','CountryName',collapse='\n')))
+    stop(paste0('Ecoregion shapefiles must have the following columns:\n',paste0(c('EcoRegName','ProvStateName','CountryName','geometry'),collapse='\n')))
   }
   
   ecoReg <- ecoReg %>% transmute(name=NA_L3NAME) %>% #Read in ecoregions

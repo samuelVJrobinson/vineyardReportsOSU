@@ -214,10 +214,16 @@ superPl_gen <- vinePlDat_gen %>%
   filter(!is.na(N),quality=='super',!isNoxious) %>% 
   arrange(desc(N),desc(Nrare))
 
-# #Unique vineyard bee-plant combos
-# vyCombos_vy <- vyCombos %>% filter(vineyard==params$set_title) %>% select(-vineyard)
+#Get range of bees found on other projects from this ecoregion
+beeDivRange <- sapply(iNatNetworks,function(x,y) ifelse(x$ecoregNtwk_summary$ecoRegName!=y,NA,ncol(x$ntwk)),
+       y=ecoRegName)
+beeDivRange <- unique(unname(beeDivRange[!is.na(beeDivRange)])) 
 
 # \node[draw=black,minimum height = 2.3cm,minimum width=8cm,anchor=north east,font=\color{white}\LARGE\linespread{1}\selectfont, fill=\color{white},rectangle,yshift=-0.5cm,xshift=-0.5cm,align=right] at (current page.north east){BEE HABITAT\\Stewardship Tool};
+
+
+    # <!-- \node[anchor=north west,rectangle,,yshift=0cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../extdata/OSU_ES-MM_horizontal_1C_W.png}}; -->
+    # <!-- \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=4.5cm]{../extdata/OregonBeeAtlas-Logo-Final-03.png}}; -->
 
 ```
 
@@ -227,38 +233,34 @@ superPl_gen <- vinePlDat_gen %>%
 
 \begin{tikzpicture}[remember picture,overlay]
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
-    \node[anchor=north west,rectangle,,yshift=0cm,xshift=0.5cm] at (current page.north west){\includegraphics[height=2.3cm]{../extdata/OSU_ES-MM_horizontal_1C_W.png}};
-    \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-4.8cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{BEE HABITAT}\\\textsc{\huge{STEWARDSHIP TOOL}}};
-    \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=-4.5cm] at (current page marginpar area.north east){\includegraphics[width=4.5cm]{../extdata/OregonBeeAtlas-Logo-Final-03.png}};
-    \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[width=3.3cm]{../extdata/OregonFlora_logo.jpg}};
-    
+    \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-3.5cm,xshift=2.1cm,align=left] at (current page.north west){\textsc{Stewardship Report}};
+    \node[anchor=south east,rectangle,,yshift=0.2cm,xshift=0cm] at (current page marginpar area.north east){\includegraphics[height=4cm]{../extdata/blackwhite_beestewards_logo.png}};
 \end{tikzpicture}
 
 \vspace{0.2cm}
 
 \centering\huge
 
-`r paste0(params$set_title,': REPORT 2025')`
+\huge 2025 Report for `r params$set_title` 
 
 \raggedright\Large
 
-\section{Bee habitat from your iNaturalist project}
+\section{Plant inventory}
 
 \setlength{\columnsep}{-8.5cm}
-
 
 \begin{multicols}{2}[
 Out of the `r nrow(vinePlDat_spp)` identified plant species from your iNaturalist project, \Large`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'))` \Large are bee-friendly plants. Of these plants:
 ]
 
-\includegraphics[width=2.5cm]{../extdata/purple-fireweed-hi.png}
+\includegraphics[width=2.5cm]{../extdata/purple_flowers.png}
 
 \columnbreak
 
 \begin{itemize}
 \item \huge`r nrow(superPl_spp)` \Large species are \emph{super} bee plants
-\item \huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'&isNative))` \Large species are native plants
-\item \huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'&isWeedy))` \Large species are general (non-noxious) weeds
+\item \huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'&isNative))` \Large species are native to your Ecoregion
+\item \huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'&isWeedy))` \Large species are not native to your Ecoregion
 \item \huge`r nrow(filter(vinePlDat_spp,!is.na(N)&quality!='poor'&isNoxious))` \Large species are noxious weeds
 \end{itemize}
 
@@ -266,7 +268,10 @@ Out of the `r nrow(vinePlDat_spp)` identified plant species from your iNaturalis
 
 <!-- This gets the number of bee species predicted from plant genera (not plant species)-->
 
-Based on bee-plant records from Oregon Bee Atlas, we predict that you have \Large`r nrow(suppBeeSpp)`\footnote{Similar sites in Oregon range from `r paste0(range(sapply(iNatNetworks,function(x) length(unique(strsplit(paste0(x$genList$beeSpp,collapse=','),',')[[1]])))),collapse=' - ')` species of bees} \Large species of bees across `r famCounts %>% filter(cat=='existing') %>% pull(lookupFam) %>% unique %>% length` families. `r ifelse(isMultiyear,"You provided us with multiple years of data, so any year-to-year improvements in bee habitat from additional plant species you discovered in each year are shown below.","")`
+\section{Plant inventory}
+
+Based on bee-plant records from Oregon Bee Atlas, we predict that you have \Large`r nrow(suppBeeSpp)` \Large species of bees at your site. `r ifelse(length(beeDivRange)>1,paste0('Similar sites in the ',params$set_title,' ecroegion have ',paste0(range(beeDivRange),collapse=' - '),' species of bees.'),'')`
+The species at your site cover `r  length(unique(filter(famCounts,cat=='existing')$lookupFam))` out of the 6 bee families found in North America.
 
 ```{r beeFamilyPlot, out.width = '100%', fig.asp=0.35}
 
@@ -284,7 +289,7 @@ if(isMultiyear){
     ggplot(aes(x=lookupFam,y=n))+
     geom_col(aes(fill=year),col='black')+
     labs(x=NULL,y='Number of species',fill='Year')+
-    coord_flip()  +
+    coord_flip()+
     scale_fill_brewer(palette = 'Greys',direction = -1)
   
 } else {
@@ -314,14 +319,14 @@ numPlants <- 8 #Max number of plants to display
 
 if(nrow(superPl_spp)>0){
   superPl_spp %>%
-  select(Common_name,scientific_name,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
+  select(Common_name,scientific_name,EstRich,Nrare,Lifecycle,Bloom_start,Bloom_end) %>%
   slice(1:numPlants) %>%
   transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',scientific_name,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
+            `Life cycle`=Lifecycle,
             `Bloom Time`=paste0(Bloom_start,'-',Bloom_end)) %>%
   mutate(across(where(is.character),~ifelse(grepl('NA',.x),'-',.x))) %>% #Set NAs as dashes
   kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species', position = "h",longtable=TRUE) %>% 
-  column_spec(3,width='3cm') 
+  column_spec(2,width='3cm') 
 } 
 
 # #Super bee plant genera
@@ -349,7 +354,7 @@ if(nrow(superPl_spp)>0){
 
 Bee plants are often located in overlooked areas. While some plants are in your cultivated landscaped areas, often they are found growing wild in your headlands. Consider increasing the number of plants in these areas through seeding or cuttings, or by managing weeds and grasses.
 
-```{r fieldMapsSpp, fig.width=7, fig.asp=0.75, warning=FALSE}
+```{r fieldMapsSpp, fig.asp=0.75, fig.width=7, warning=FALSE}
 
 plantLocs <- iNatPlDat_vy %>% select(-vineyard,-ecoreg) %>% 
   # st_transform(4269) %>% mutate(lon=st_coordinates(.)[,1],lat=st_coordinates(.)[,2]) %>% st_drop_geometry() %>%
@@ -367,40 +372,18 @@ plantLocs <- iNatPlDat_vy %>% select(-vineyard,-ecoreg) %>%
          taxonLevel=ifelse(grepl('.spp',scientific_name),'Genus','Species')) %>% 
    st_jitter(amount = 3) %>% arrange(quality.x) #Sorts, so super plants are rendered on top
 
-ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) %>% st_transform(3857)
-b <- basemap_stars(ext, map_service = "esri", map_type = "world_imagery",verbose = FALSE)
-
-# #Both genus & spp
+# ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) %>% st_transform(3857)
+# b <- basemap_stars(ext, map_service = "esri", map_type = "world_imagery",verbose = FALSE)
+# 
+# 
+# # #Species-level map
 # ggplot() + geom_stars(data=st_rgb(b))+
-#   geom_sf(data=st_transform(plantLocs,st_crs(b)),
-#           aes(col=quality.x,shape=taxonLevel))+
-#   geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),quality.x=='super'),
-#     aes(label = plGenus, geometry = geometry),
-#     stat = "sf_coordinates",col='cyan'
-#   )+
-#   labs(x=NULL,y=NULL,col='Plant quality',shape='Genus\\Species')+
-#   theme(axis.text = element_blank(),axis.ticks = element_blank())+
-#   scale_colour_manual(values=c('tomato3','purple','cyan'))
-
-# #Species-level map
-ggplot() + geom_stars(data=st_rgb(b))+
-  geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Species'),st_crs(b)),
-          aes(col=quality.x),show.legend=TRUE)+
-  geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),taxonLevel=='Species',quality.x=='super'),
-    aes(label = common_name, geometry = geometry),
-    stat = "sf_coordinates",col='cyan',size=3)+
-  labs(x=NULL,y=NULL,col='Plant quality',title='Species-level IDs')+
-  theme(axis.text = element_blank(),axis.ticks = element_blank())+
-  scale_colour_manual(values=c('tomato3','purple','cyan'),drop=FALSE)
-
-# #Genus-level map
-# ggplot() + geom_stars(data=st_rgb(b))+
-#   geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Genus'),st_crs(b)),
+#   geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Species'),st_crs(b)),
 #           aes(col=quality.x),show.legend=TRUE)+
-#   geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),quality.x=='super',taxonLevel=='Genus'),
+#   geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),taxonLevel=='Species',quality.x=='super'),
 #     aes(label = common_name, geometry = geometry),
 #     stat = "sf_coordinates",col='cyan',size=3)+
-#   labs(x=NULL,y=NULL,col='Plant quality',title='Genus-level IDs')+
+#   labs(x=NULL,y=NULL,col='Plant quality',title='Species-level IDs')+
 #   theme(axis.text = element_blank(),axis.ticks = element_blank())+
 #   scale_colour_manual(values=c('tomato3','purple','cyan'),drop=FALSE)
 
@@ -413,9 +396,7 @@ ggplot() + geom_stars(data=st_rgb(b))+
 
 
 \clearpage
-\section{What do we recommend?}
-
-\subsection{Suggested native plants}
+\section{Plant recommendations}
 
 There are a few native bee plants from the Willamette Valley region you are currently missing. Adding these species of plants will increase the estimated number of bees at your property from \Large`r as.character(sum(famCounts$cat=='existing'))` to \Large `r nrow(famCounts)` species of bees: \large 
 
@@ -433,17 +414,13 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
   mutate(Rank=1:n(),Plant=linebreak(paste0(Common_name,'\n(\\emph{',genSpp,'})'),align='r'),
             Origin=ifelse(isNative,'Native','Exotic'),
             Bloom_period=paste0(Bloom_start,'-',Bloom_end)) %>%
-  select(Rank,Plant,Origin,Lifecycle,Bloom_period,isLandscape:isWetland) %>% 
+  select(Rank,Plant,Lifecycle,Bloom_period) %>% 
   rename(`Bloom Period`=Bloom_period,`Plant Species`=Plant) %>% 
-  mutate(across(contains('is'),~ifelse(.x,'X',''))) %>% 
-  rename_with(.fn = ~addRotate(gsub('is','',.x)),.cols=contains('is')) %>% 
   group_by(Lifecycle) %>% arrange(desc(Rank)) %>% slice(1:nPlantsMax) %>% ungroup() %>% select(-Rank) %>% 
-  # kable(escape=FALSE,format = 'latex',longtable=TRUE,align = c(rep('r', 2),rep('l', 3),rep('c',6))) %>% 
   kable(escape=FALSE,format = 'latex',longtable=TRUE) %>% 
   kable_styling(latex_options = c("repeat_header","scale_down")) %>% 
-  column_spec(2:4,width='2cm',latex_valign = 'm') %>% #Warning: argument not atomic vector
-  column_spec(5:10,latex_valign = 'm') %>% 
-  add_header_above(c(" "=4,"Planting Type"=6),line = TRUE)
+  column_spec(2:3,width='2cm',latex_valign = 'm') #Warning: argument not atomic vector
+  
 
 ```
 
@@ -495,12 +472,12 @@ if(nrow(superPl_spp)>0){
   superPl_spp %>%
   select(Common_name,scientific_name,EstRich,Nrare,isNative,Lifecycle,Bloom_start,Bloom_end) %>%
   transmute(Plant=linebreak(paste0(Common_name,'\n(\\emph{',scientific_name,'})'),align='r'),
-            Origin=ifelse(isNative,'Native','Exotic'),`Life cycle`=Lifecycle,
+            `Life cycle`=Lifecycle,
             `Bloom Time`=paste0(Bloom_start,'-',Bloom_end),
             `Bee Species`=round(EstRich),`Rare Bees`=Nrare) %>%
   mutate(across(where(is.character),~ifelse(grepl('NA',.x),'-',.x))) %>% #Set NAs as dashes
-  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species (may include exotic or non-noxious weedy species)',longtable=TRUE) %>%
-  column_spec(3,width='3cm')
+  kable(escape=FALSE,format = 'latex',caption = 'Super bee plant species',longtable=TRUE) %>%
+  column_spec(2,width='3cm')
 }
 ```
 
