@@ -9,7 +9,7 @@
 #' @param plDatCSV (Optional) output csv of all plant records. Skips writing if NA.
 #' @param predictedBeesCSV (Optional) output csv of predicted bees for each project. Skips writing if NA.
 #' @param dataStoragePath (Optional) .Rdata storage path for internal function data. Skips writing if NA.
-#' @param famGenPath (Optional) Path to bee genus-family lookup csv. Uses internal if NA.
+#' @param famGenPath (Optional) Path to bee genus-family lookup csv. If NA uses lookup table from Pizkulich et al 2023 (DOI: 10.5061/dryad.80gb5mkw1).
 #' @param ecoregShpPath (Optional) Path to ecoregion polygons. Uses internal if NA.
 #' @param beeAbstractsPath (Optional) Path to bee/plant Abstract csv.
 #' 
@@ -65,7 +65,8 @@ makeReports <- function(plantListCSV = NA,
   predictedBeesCSV = NA
   dataStoragePath = NA
   famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
-  ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\GIS Warehouse\\EPA Level 3 Ecoregions - North America\\NA_CEC_Eco_Level3.shp" 
+  # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\GIS Warehouse\\EPA Level 3 Ecoregions - North America\\NA_CEC_Eco_Level3.shp"
+  ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
   beeAbstractsPath = NA
   
   # Preamble ---------------------------
@@ -84,7 +85,7 @@ makeReports <- function(plantListCSV = NA,
   library(rmarkdown)
   
   #Convenience function
-  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:' \\-\\.]",'*',x) #Gets rid of nonstandard characters that screw up LaTeX reports
+  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:' \\-\\.]",' ',x) #Gets rid of nonstandard characters that screw up LaTeX reports
   
   #BS checking
   
@@ -119,6 +120,7 @@ makeReports <- function(plantListCSV = NA,
   
   #Bee family-genus lookup
   famGen <- read.csv(ifelse(is.na(famGenPath),system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE),famGenPath)) %>% 
+    select(Family,Genus) %>% #Cut out Tribe/Subfamilies
     rename(lookupFam=Family) #Bee genus-family lookup table
   
   # Load and clean up regional plant data -------------------------
@@ -235,8 +237,11 @@ makeReports <- function(plantListCSV = NA,
               Latitude,Longitude) %>%
     mutate(across(where(is.character),~str_trim(.))) %>% #Trim whitespace across columns
     mutate(Date=as.Date(Date,format='%B %d %Y')) %>% #Create date
-    mutate(Genus=str_to_title(Genus),Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>%  #Capitalize spp names
+    mutate(Genus=str_to_title(Genus),Genus=gsub('\\s.*$','',Genus)) %>% #Capitalize spp names,remove subgenera
+    mutate(Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>% #Match genus to family  
+    filter(!is.na(Family)) %>% #Gets rid of genera with no matching bee family
     mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
+    # filter(!is.na(Family)) %>% #Filter out records that don't have a family name
     makeGenSpp(Genus,Species) #Make genSpp column
   
   chooseThese <- grepl('\\s\\(.+$',beeData$ForagePlant) #Gets rid of brackets+text after ForagePlant
@@ -301,15 +306,15 @@ makeReports <- function(plantListCSV = NA,
   ecoregShpPath <- ifelse(is.na(ecoregShpPath),system.file('extdata','or_eco_l3.shp',package=packageName(),mustWork = TRUE),ecoregShpPath)
   ecoReg <- st_read(ecoregShpPath,quiet = TRUE)
   
-  if(any(!c('NA_L3NAME','geometry') %in% colnames(ecoReg))){
-    stop(paste0('Ecoregion shapefiles must have the following columns:\n',paste0('NA_L3NAME',collapse='\n')))
+  if(any(!c('EcoRegName','ProvStateName','CountryName','geometry') %in% colnames(ecoReg))){
+    stop(paste0('Ecoregion shapefiles must have the following columns:\n',paste0('EcoRegName','ProvStateName','CountryName',collapse='\n')))
   }
   
   ecoReg <- ecoReg %>% transmute(name=NA_L3NAME) %>% #Read in ecoregions
     st_transform(3643) %>% #Transform to Oregon Lambert
     group_by(name) %>% summarize(geometry=st_union(geometry)) %>% ungroup() %>% #Union separate polygons
-    mutate(name=gsub(' and ',' & ',name)) %>% #Replace "and" with "&"
-    mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) #Add line break (\n) to "Cascades Slopes"
+    mutate(name=gsub(' and ',' & ',name)) #Replace "and" with "&"
+    # mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) #Add line break (\n) to "Cascades Slopes"
   
   #Overwrite county name using shapefiles, using lat/lon data from individual records
   
@@ -392,7 +397,7 @@ makeReports <- function(plantListCSV = NA,
       write.csv(.,file = plDatCSV,row.names = FALSE)
   }
   
-  # Make regional and vineyard-level networks ------------------------------------
+  # Make regional and project-level networks ------------------------------------
   print('Creating regional networks')
   # Gets unique plant records and associated bee records from the 2024 bee data. Used to generate a list of "highlight" bees and plants for growers
   

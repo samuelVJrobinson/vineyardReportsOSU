@@ -9,7 +9,7 @@
 #' @param vinePlDatCSV (Optional) output csv of all vineyard records. Skips writing if NA.
 #' @param predictedBeesCSV (Optional) output csv of predicted bees for each vineyard. Skips writing if NA.
 #' @param dataStoragePath (Optional) .Rdata storage path for internal function data. Skips writing if NA.
-#' @param famGenPath (Optional) Path to bee genus-family lookup csv. Uses internal if NA.
+#' @param famGenPath (Optional) Path to bee genus-family lookup csv. If NA uses lookup table from Pizkulich et al 2023 (DOI: 10.5061/dryad.80gb5mkw1).
 #' @param orCountyShpPath (Optional) Path to Oregon county polygons. Uses internal if NA.
 #' @param orEcoregShpPath (Optional) Path to Oregon ecoregion polygons. Uses internal if NA.
 #' @param beeAbstractsPath (Optional) Path to bee/plant Abstract csv.
@@ -103,6 +103,7 @@ makeReports <- function(plantListCSV = NA,
   
   #Bee family-genus lookup
   famGen <- read.csv(ifelse(is.na(famGenPath),system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE),famGenPath)) %>% 
+    select(Family,Genus) %>% #Cut out Tribe/Subfamilies
     rename(lookupFam=Family) #Bee genus-family lookup table
   
   # Load and clean up Oregon plant data -------------------------
