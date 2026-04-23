@@ -68,6 +68,7 @@ makeReports <- function(plantListCSV = NA,
   # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\GIS Warehouse\\EPA Level 3 Ecoregions - North America\\NA_CEC_Eco_Level3.shp"
   ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
   beeAbstractsPath = NA
+  rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
   
@@ -291,6 +292,7 @@ makeReports <- function(plantListCSV = NA,
            plantSpp=ifelse(grepl(" ",ForagePlant),gsub("^\\w+\\s","",ForagePlant),NA)) %>%
     mutate(plantSpp=ifelse(plantSpp=='spp.',NA,plantSpp)) %>%
     mutate(across(c(ForagePlant),~rmBadChar(.x))) %>% #Get rid of remaining nonstandard characters
+    mutate(across(c(ForagePlant),~gsub('  ',' ',.x))) %>% #Get rid of double spaces produced by replacing nonstandard characters
     filter(!is.na(ForagePlant)) %>% #Remove records with no forage plant
     filter(!is.na(Latitude)&!is.na(Longitude)) %>% 
     st_as_sf(coords=c('Longitude','Latitude')) %>% #Set lon and lat as coordinates
@@ -303,16 +305,16 @@ makeReports <- function(plantListCSV = NA,
   #Shapefiles of North American ecoregions
   
   #Gets path from internal data if NA
-  ecoregShpPath <- ifelse(is.na(ecoregShpPath),system.file('extdata','or_eco_l3.shp',package=packageName(),mustWork = TRUE),ecoregShpPath)
+  ecoregShpPath <- ifelse(is.na(ecoregShpPath),system.file('extdata','NA_ecoregions.gpkg',package=packageName(),mustWork = TRUE),ecoregShpPath)
   ecoReg <- st_read(ecoregShpPath,quiet = TRUE) %>% rename(geometry=geom)
   
   if(any(!c('EcoRegName','ProvStateName','CountryName','geometry') %in% colnames(ecoReg))){
     stop(paste0('Ecoregion shapefiles must have the following columns:\n',paste0(c('EcoRegName','ProvStateName','CountryName','geometry'),collapse='\n')))
   }
   
-  ecoReg <- ecoReg %>% transmute(name=NA_L3NAME) %>% #Read in ecoregions
+  ecoReg <- ecoReg %>% rename(name=EcoRegName) %>% #Read in ecoregions
     st_transform(3643) %>% #Transform to Oregon Lambert
-    group_by(name) %>% summarize(geometry=st_union(geometry)) %>% ungroup() %>% #Union separate polygons
+    group_by(name) %>% summarize(across(-geometry,first),geometry=st_union(geometry)) %>% ungroup() %>% #Union separate polygons
     mutate(name=gsub(' and ',' & ',name)) #Replace "and" with "&"
     # mutate(name=gsub('Cascades Slopes','Cascades\nSlopes',name)) #Add line break (\n) to "Cascades Slopes"
   
@@ -337,7 +339,7 @@ makeReports <- function(plantListCSV = NA,
   
   #Common names for bee families
   commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
-                          common=c('Mining bees','Social bees','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
+                          common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
     mutate(plotLab=paste0(Family,'\n(',common,')'))
   
   #Load and clean up iNaturalist records ------------------------
@@ -371,7 +373,7 @@ makeReports <- function(plantListCSV = NA,
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #%>% st_drop_geometry() %>% mutate(vyName=basename(vineyard)) %>% count(vyName)
   
-  #Join ecoregions and counties to iNat plantdata
+   #Join ecoregions and counties to iNat plantdata
   iNatPlDat$ecoreg <- gsub('\n',' ',ecoReg$name)[st_within_fast(iNatPlDat,ecoReg)] #Get rid of carriage return in ecoregion name
   # ecoReg %>% filter(name %in% unique(iNatPlDat$ecoreg)) %>% ggplot()+geom_sf(aes(fill=name))+geom_sf(data=iNatPlDat,col='red') #Works
   if(any(is.na(iNatPlDat$ecoreg))){
@@ -380,13 +382,13 @@ makeReports <- function(plantListCSV = NA,
     iNatPlDat <- iNatPlDat %>% filter(!is.na(ecoreg))
   }
   
-  vyNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Names names from csv paths
+  iNatProjNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Names names from csv paths
   
-  if(any(!vyNames %in% unique(iNatPlDat$vineyard))){ #If there are any vineyards that have been completely filtered out  (empty)
+  if(any(!iNatProjNames %in% unique(iNatPlDat$vineyard))){ #If there are any vineyards that have been completely filtered out  (empty)
     message(paste0('Some projects were not present after iNat record filtering. Check to make sure the locations of iNat records are within ecoregions, and that they contain plant genus information:\n\n',
-                   paste(vyNames[!vyNames %in% unique(iNatPlDat$vineyard)],collapse='\n')))
+                   paste(iNatProjNames[!iNatProjNames %in% unique(iNatPlDat$vineyard)],collapse='\n')))
     Sys.sleep(1)
-    vyNames <- unique(iNatPlDat$vineyard) #Rewrites iNat plantnames if some are missing
+    iNatProjNames <- unique(iNatPlDat$vineyard) #Rewrites iNat plantnames if some are missing
   }
   
   if(!is.na(plDatCSV)){ #If path provided
@@ -396,6 +398,10 @@ makeReports <- function(plantListCSV = NA,
       st_drop_geometry() %>% 
       write.csv(.,file = plDatCSV,row.names = FALSE)
   }
+  
+  #Check whether plant species from iNat data are missing from database
+  
+  
   
   # Make regional and project-level networks ------------------------------------
   print('Creating regional networks')
@@ -532,23 +538,34 @@ makeReports <- function(plantListCSV = NA,
                 'topSpp'=topSpp,'topGen'=topGen,'rareBees'=rareBees))
   }
   
-  #Assemble regional networks into a list
-  useEcoReg <- c(ecoReg$name[ecoReg$name %in% unique(iNatPlDat$ecoreg)],'ALL') #Ecoregions to use + "ALL"
   
+  useEcoReg <- c(ecoReg$name[ecoReg$name %in% unique(iNatPlDat$ecoreg)],'ALL') #Get names of ecoregions to use + "ALL"
+  
+  #Assemble regional networks into a list
   ecoRegNetworks <- lapply(useEcoReg,getRegNtwks,bdat=beeData,pList=plantList) %>% 
     set_names(useEcoReg)
   
-  #Get unique interaction matrices for each unique vineyard
+  #Get associated states/provinces for each ecoregion
+  ecoRegStatProvs <- c(filter(ecoReg,name %in% names(ecoRegNetworks)[names(ecoRegNetworks)!='ALL'])$ProvStateName, #Individual ecoregions
+    paste0(unique(unlist(strsplit(filter(ecoReg,name %in% useEcoReg)$ProvStateName,','))),collapse=',')) #All ecoregions
+  
+  #Add state/prov names to ecoregion networks
+  ecoRegNetworks <- Map(function(er,ersp) c(list(ProvStateName=ersp),er), ecoRegNetworks,ecoRegStatProvs) 
+  
+  #Cleanup
+  rm(useEcoReg,ecoRegStatProvs)
+  
+  #Get unique interaction matrices for each unique iNat project
   
   #Get networks for individual iNat projects using regional data
-  getInatNtwks <- function(vy,vpDat,erNtwk){ #vy = vineyard name, vpDat = plant data to select vineyard project from, erNtwk = full ecoregion network
+  getInatNtwks <- function(vy,vpDat,erNtwk){ #vy = iNat project name, vpDat = plant data to select iNat project project from, erNtwk = full ecoregion network
     vyPlantSpp <- vpDat %>% st_drop_geometry() %>% 
-      filter(vineyard==vy) %>% #Plant species list for this vineyard
+      filter(vineyard==vy) %>% #Plant species list for this iNat project
       distinct() %>% filter(scientific_name!=plGenus) %>% 
       pull(scientific_name)
-    vyPlantGen <- unique(gsub('\\s.+$','',vyPlantSpp)) #Plant genus list for this vineyard
-    vyEcoreg <- unique(vpDat$ecoreg[vpDat$vineyard==vy]) #Ecoregion for this vineyard
-    if(length(vyEcoreg)!=1) stop('More than 1 ecoregion per vineyard')
+    vyPlantGen <- unique(gsub('\\s.+$','',vyPlantSpp)) #Plant genus list for this iNat project
+    vyEcoreg <- unique(vpDat$ecoreg[vpDat$vineyard==vy]) #Ecoregion for this iNat project
+    if(length(vyEcoreg)!=1) stop('More than 1 ecoregion per iNat project')
     #Ecoregion network
     ecoregNtwk_summary <- c('ecoRegName'=vyEcoreg,
                             lapply(list('ntwk_all'=erNtwk[[vyEcoreg]]$ntwk_all,
@@ -587,8 +604,8 @@ makeReports <- function(plantListCSV = NA,
     return(c(list('ecoregNtwk_summary'=ecoregNtwk_summary),m,n))
   }
   
-  iNatNetworks <- lapply(vyNames,getInatNtwks,vpDat=iNatPlDat,erNtwk=ecoRegNetworks) %>% 
-    set_names(vyNames)
+  iNatNetworks <- lapply(iNatProjNames,getInatNtwks,vpDat=iNatPlDat,erNtwk=ecoRegNetworks) %>% 
+    set_names(iNatProjNames)
   
   #Write predicted bees at each iNat project to a csv
   if(!is.na(predictedBeesCSV)){
@@ -640,7 +657,7 @@ makeReports <- function(plantListCSV = NA,
                envir=new.env(),
                quiet = TRUE
         )  
-      })
+      }); beepr::beep()
       
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
