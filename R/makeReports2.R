@@ -68,6 +68,7 @@ makeReports <- function(plantListCSV = NA,
   # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\GIS Warehouse\\EPA Level 3 Ecoregions - North America\\NA_CEC_Eco_Level3.shp"
   ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
   beeAbstractsPath = NA
+  vy = 1
   rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
@@ -86,7 +87,7 @@ makeReports <- function(plantListCSV = NA,
   library(rmarkdown)
   
   #Convenience function
-  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:' \\-\\.]",' ',x) #Gets rid of nonstandard characters that screw up LaTeX reports
+  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:'-.]",' ',x,perl = TRUE) #Gets rid of nonstandard characters that screw up LaTeX reports - leaves dashes, colons, apostrophes, periods
   
   #BS checking
   
@@ -262,7 +263,7 @@ makeReports <- function(plantListCSV = NA,
                                      paste(gsub('(\\s.\\s.*$|\\s.$)','',unique(na.omit(beeData$ForagePlant[chooseThese]))))),1,
                                paste,collapse=' -> '),collapse='\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=gsub('(\\s.\\s.*$|\\s.$)','',ForagePlant)) 
+    beeData <- beeData %>% mutate(ForagePlant=gsub('(\\s.\\s.*$|\\s.$)','',ForagePlant)) #Replace text 
   }
   
   chooseThese <- grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',beeData$ForagePlant) #Gets rid of higher-level names
@@ -270,15 +271,26 @@ makeReports <- function(plantListCSV = NA,
     message(paste0("Orders, families, or other non-genus groups found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) 
+    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) #Set as NA
   }
+  
+  beeData %>% st_drop_geometry() %>% filter(!is.na(ForagePlant)) %>% mutate(ForagePlant2=rmBadChar(ForagePlant)) %>% 
+    filter(ForagePlant!=ForagePlant2) %>% select(ForagePlant,ForagePlant2)
+  
+  rmBadChar(beeData$ForagePlant[!is.na(beeData$ForagePlant)])==beeData$ForagePlant
   
   chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of lists of ForagePlant species
   if(any(chooseThese)){
     message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(,|^\\S+\\s\\S+\\s.*$)',ForagePlant),NA,ForagePlant)) 
+    beeData <- beeData %>% 
+      mutate(ForagePlant=case_when(is.na(ForagePlant) ~ NA_character_,
+                                   grepl('Ã—',ForagePlant) ~ gsub(' Ã—.*','',ForagePlant), #Removes hybrid character, changes to genus only
+                                   #Removes varietal, keeps genus + spp
+                                   str_count(ForagePlant,' ')>1 ~ sapply(str_split(ForagePlant,' '), function(x) paste0(x[1:pmin(2,length(x))],collapse=' ')), 
+                                   .default = ForagePlant
+                                   ))
   }
   
   beeData <- beeData %>% 
@@ -299,8 +311,22 @@ makeReports <- function(plantListCSV = NA,
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #Transform to Oregon Lambert system
   
-  # Load spatial data ------------------------
-  print('Loading county/ecoregion polygons')
+  #Common names for bee families
+  commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
+                          common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
+    mutate(plotLab=paste0(Family,'\n(',common,')'))
+  
+  #Check whether species in bee data are found in plant database
+  foragePlantMissing <- sort(unique(beeData$ForagePlant[!beeData$ForagePlant %in% plantList$Scientific_name]))
+  
+  if(length(foragePlantMissing)>0){
+    message(paste0(length(foragePlantMissing), " forage plant species in bee database were not found in plant list:\n\n",
+                   paste(foragePlantMissing,collapse = '\n'),'\n'))
+    Sys.sleep(1)
+  }
+  
+  # Load ecoregion/state province polygons ------------------------
+  print('Loading ecoregion/state/province polygons')
   
   #Shapefiles of North American ecoregions
   
@@ -337,10 +363,8 @@ makeReports <- function(plantListCSV = NA,
   
   mi2km <- 1.609344 #Miles per kilometer
   
-  #Common names for bee families
-  commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
-                          common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
-    mutate(plotLab=paste0(Family,'\n(',common,')'))
+  #Load state/province polygons
+  
   
   #Load and clean up iNaturalist records ------------------------
   print('Loading iNaturalist records')
@@ -399,9 +423,24 @@ makeReports <- function(plantListCSV = NA,
       write.csv(.,file = plDatCSV,row.names = FALSE)
   }
   
-  #Check whether plant species from iNat data are missing from database
+  # Write list of missing/present species to csv --------------------------------------
   
+  plantDataSummary <- list('inPlantDatabase'=sort(unique(plantList$Scientific_name)),
+       'inBeeForagePlants'=sort(unique(beeData$ForagePlant)),
+       'inINatPlants'=sort(unique(iNatPlDat$scientific_name))
+  ) %>% lapply(.,function(x) data.frame('PlantSpp'=x)) %>% bind_rows(.id = 'dataset') %>% 
+    mutate(valCol=TRUE) %>% pivot_wider(names_from=dataset,values_from=valCol,values_fill = FALSE)
   
+  if(sum(apply(plantDataSummary[,-1],1,function(x) any(!x)))>0){
+    message(paste0(sum(apply(plantDataSummary[,-1],1,function(x) any(!x))),' plants missing from plant database, bee forage plant records, or iNaturalist records:\n\n'))
+    temp <- ftable(xtabs(~inPlantDatabase+inBeeForagePlants+inINatPlants,data = plantDataSummary),row.vars = 1:3) #Contingency table
+    attr(temp,'col.vars') <- 'Number of Plants' #Renames column
+    print(temp)
+    message(paste0('Writing summary csv to ',paste0(reportFolder,'plantDataSummary.csv')))
+    write.csv(arrange(plantDataSummary,grepl('spp.',PlantSpp),PlantSpp), #Writes to csv in report folder
+              paste0(reportFolder,'plantDataSummary.csv'),row.names = FALSE)
+    Sys.sleep(1)
+  }
   
   # Make regional and project-level networks ------------------------------------
   print('Creating regional networks')
@@ -606,6 +645,8 @@ makeReports <- function(plantListCSV = NA,
   
   iNatNetworks <- lapply(iNatProjNames,getInatNtwks,vpDat=iNatPlDat,erNtwk=ecoRegNetworks) %>% 
     set_names(iNatProjNames)
+  
+  # filter(iNatPlDat
   
   #Write predicted bees at each iNat project to a csv
   if(!is.na(predictedBeesCSV)){

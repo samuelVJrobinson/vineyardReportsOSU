@@ -76,14 +76,15 @@ if(any(sapply(params,function(x) x=='NULL'))){
 iNatPlDat_vy <- filter(iNatPlDat, vineyard==params$set_title)
 
 #Debugging: param is a reserved word in this context
-
 iNatPlDat_vy <- filter(iNatPlDat, vineyard=='callotchrissy')
 
 if(length(unique(iNatPlDat_vy$ecoreg))!=1){
   stop(paste0('Project has ',length(unique(iNatPlDat_vy$ecoreg)),' ecoregions; should be 1'))
 } else {
-  ecoRegName <- unique(iNatPlDat_vy$ecoreg)
+  ecoRegName <- unique(iNatPlDat_vy$ecoreg) #Get ecoregion for this project
 }
+
+ecoRegProvState <- ecoRegNetworks[[ecoRegName]]$ProvStateName #Get province/states within this ecoregion
 
 isMultiyear <- length(unique(iNatPlDat_vy$year))>1 #More than 1 year of data?
 
@@ -422,7 +423,7 @@ data.frame(genSpp=plantScoresSpp$PlantGenus) %>%
 
 ```
 
-For a full list of native plants, see Appendix 3.
+For a full list of native plants, see Appendix 2.
 
 \newpage
 
