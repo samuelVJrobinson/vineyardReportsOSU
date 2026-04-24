@@ -75,13 +75,13 @@ if(any(sapply(params,function(x) x=='NULL'))){
 #Plants from focal project
 iNatPlDat_vy <- filter(iNatPlDat, vineyard==params$set_title)
 
-#Debugging: param is a reserved word in this context
-iNatPlDat_vy <- filter(iNatPlDat, vineyard=='callotchrissy')
+# #Debugging: param is a reserved word in this context
+# iNatPlDat_vy <- filter(iNatPlDat, vineyard=='callotchrissy')
 
 if(length(unique(iNatPlDat_vy$ecoreg))!=1){
   stop(paste0('Project has ',length(unique(iNatPlDat_vy$ecoreg)),' ecoregions; should be 1'))
 } else {
-  ecoRegName <- unique(iNatPlDat_vy$ecoreg) #Get ecoregion for this project
+  ecoRegName <- unique(iNatPlDat_vy$ecoreg) #Get ecoregion for this iNat project
 }
 
 ecoRegProvState <- ecoRegNetworks[[ecoRegName]]$ProvStateName #Get province/states within this ecoregion
@@ -372,19 +372,19 @@ plantLocs <- iNatPlDat_vy %>% select(-vineyard,-ecoreg) %>%
          taxonLevel=ifelse(grepl('.spp',scientific_name),'Genus','Species')) %>% 
    st_jitter(amount = 3) %>% arrange(quality.x) #Sorts, so super plants are rendered on top
 
-# ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) %>% st_transform(3857)
-# b <- basemap_stars(ext, map_service = "esri", map_type = "world_imagery",verbose = FALSE)
-# 
-# #Species-level map
-# ggplot() + geom_stars(data=st_rgb(b))+
-#   geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Species'),st_crs(b)),
-#           aes(col=quality.x),show.legend=TRUE)+
-#   geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),taxonLevel=='Species',quality.x=='super'),
-#     aes(label = common_name, geometry = geometry),
-#     stat = "sf_coordinates",col='cyan',size=3)+
-#   labs(x=NULL,y=NULL,col='Plant quality',title='Species-level IDs')+
-#   theme(axis.text = element_blank(),axis.ticks = element_blank())+
-#   scale_colour_manual(values=c('tomato3','purple','cyan'),drop=FALSE)
+ext <- st_as_sfc(st_bbox(plantLocs), crs=st_crs(plantLocs)) %>% st_transform(3857)
+b <- basemap_stars(ext, map_service = "esri", map_type = "world_imagery",verbose = FALSE)
+
+#Species-level map
+ggplot() + geom_stars(data=st_rgb(b))+
+  geom_sf(data=st_transform(filter(plantLocs,taxonLevel=='Species'),st_crs(b)),
+          aes(col=quality.x),show.legend=TRUE)+
+  geom_text_repel(data = filter(st_transform(plantLocs,st_crs(b)),taxonLevel=='Species',quality.x=='super'),
+    aes(label = common_name, geometry = geometry),
+    stat = "sf_coordinates",col='cyan',size=3)+
+  labs(x=NULL,y=NULL,col='Plant quality',title='Species-level IDs')+
+  theme(axis.text = element_blank(),axis.ticks = element_blank())+
+  scale_colour_manual(values=c('tomato3','purple','cyan'),drop=FALSE)
 
 ```
 
@@ -440,12 +440,17 @@ famCounts %>%
   
 ```
 
+
+```{asis swcdText, echo=unique(iNatPlDat_vy$country)=="USA"}
+
 \Large
 \vspace{0.3cm}
 
 \subsection{Note on implementation}
 
 \textbf{Soil and Water Conservation Districts (SWCD)} offer free technical assistance and site visits to County residents interested in implementing conservation projects on their land. They can help develop a pollinator planting plan that is specific to your site and operation. In addition to pollinator plantings, landowners with streams and riparian areas may be eligible to enroll in a financial assistance program, the \textbf{Conservation Reserve Enhancement Program (CREP)}, to establish native trees and shrubs along creeks. Reach out to your SWCD with this report to help you move forward with restoration plans.
+
+```
 
 \clearpage
 
