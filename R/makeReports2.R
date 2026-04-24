@@ -688,7 +688,7 @@ makeReports2 <- function(plantListCSV = NA,
     } else {
       
       #Path to Rmd template
-      rmdPath <- system.file('rmdTemplates','ecoregion-report-template.Rmd',package=packageName(),mustWork = TRUE)  
+      rmdPath <- system.file('rmdTemplates','ecoregion-report-template.Rmd',package=packageName(),mustWork = TRUE)
     
       suppressWarnings({
         render(rmdPath,
