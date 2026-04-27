@@ -527,12 +527,13 @@ makeReports2 <- function(plantListCSV = NA,
       topSpp <- topGen <- NA
     } else {
       #Top plant species for ecoregion (based on Chao1 richness from plant spp - bee spp network)
-      topSpp <- vegan::estimateR(ntwk_all) %>% t() %>% 
+      #Uses ntwk_noWeed - excludes weeds and nonnative
+      topSpp <- vegan::estimateR(ntwk_noWeed) %>% t() %>% 
         data.frame() %>% 
         rownames_to_column('plantSpp') %>%
         select(plantSpp:S.chao1) %>% arrange(desc(S.chao1)) %>% 
         rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
-        mutate(Nbees_rare=rowSums(ntwk_all[,colnames(ntwk_all) %in% rareBees$genSpp,drop=FALSE])) %>%
+        mutate(Nbees_rare=rowSums(ntwk_noWeed[,colnames(ntwk_noWeed) %in% rareBees$genSpp,drop=FALSE])) %>%
         arrange(desc(Nbees)) %>%
         #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
         mutate(quality=case_when( #Cutoffs for forage plant "quality"
@@ -542,36 +543,38 @@ makeReports2 <- function(plantListCSV = NA,
         mutate(quality=factor(quality,levels=c('super','good','poor')))
     }
     
-    if(any(dim(ntwk_genSpp_noWeed)==0)){
-      if(any(dim(ntwk_genSpp_all)==0)){
-        message('No plant genus data found for ',nm,'\n')
-      } else{
-        message('No non-weedy plant genus data for ',nm,'\n')  
-      }
-      Sys.sleep(1)
-      topGen <- NA
-    } else {
-      #Top plant genera (Chao1 richness from plant genus - bee spp network)
-      topGen <- vegan::estimateR(ntwk_genSpp_all) %>% t() %>% 
-        data.frame() %>% 
-        rownames_to_column('plantGen') %>%
-        select(plantGen:S.chao1) %>% arrange(desc(S.chao1)) %>% 
-        rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
-        mutate(Nbees_rare=rowSums(ntwk_genSpp_all[,colnames(ntwk_genSpp_all) %in% rareBees$genSpp,drop=FALSE])) %>%
-        arrange(desc(Nbees)) %>%
-        #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
-        mutate(quality=case_when( #Cutoffs for forage plant "quality"
-          Nbees_estim >median(Nbees_estim) & Nbees_rare >0 ~ 'super',
-          xor(Nbees_estim > median(Nbees_estim),Nbees_rare >0) ~ 'good',
-          TRUE ~ 'poor')) %>% 
-        mutate(quality=factor(quality,levels=c('super','good','poor')))
-    }
+    ##Removing this for now
+    # if(any(dim(ntwk_genSpp_noWeed)==0)){ 
+    #   if(any(dim(ntwk_genSpp_all)==0)){
+    #     message('No plant genus data found for ',nm,'\n')
+    #   } else{
+    #     message('No non-weedy plant genus data for ',nm,'\n')  
+    #   }
+    #   Sys.sleep(1)
+    #   topGen <- NA
+    # } else {
+    #   #Top plant genera (Chao1 richness from plant genus - bee spp network)
+    #   topGen <- vegan::estimateR(ntwk_genSpp_all) %>% t() %>% 
+    #     data.frame() %>% 
+    #     rownames_to_column('plantGen') %>%
+    #     select(plantGen:S.chao1) %>% arrange(desc(S.chao1)) %>% 
+    #     rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
+    #     mutate(Nbees_rare=rowSums(ntwk_genSpp_all[,colnames(ntwk_genSpp_all) %in% rareBees$genSpp,drop=FALSE])) %>%
+    #     arrange(desc(Nbees)) %>%
+    #     #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
+    #     mutate(quality=case_when( #Cutoffs for forage plant "quality"
+    #       Nbees_estim >median(Nbees_estim) & Nbees_rare >0 ~ 'super',
+    #       xor(Nbees_estim > median(Nbees_estim),Nbees_rare >0) ~ 'good',
+    #       TRUE ~ 'poor')) %>% 
+    #     mutate(quality=factor(quality,levels=c('super','good','poor')))
+    # }
     
     #Output list
     return(list('sppList'=sppList,'genList'=genList,
                 'ntwk_all'=ntwk_all,'ntwk_noWeed'=ntwk_noWeed,
                 'ntwk_gen_all'=ntwk_gen_all,'ntwk_genSpp_all'=ntwk_genSpp_all,
-                'topSpp'=topSpp,'topGen'=topGen,'rareBees'=rareBees))
+                'topSpp'=topSpp,#'topGen'=topGen,
+                'rareBees'=rareBees))
   }
   
   
@@ -701,7 +704,7 @@ makeReports2 <- function(plantListCSV = NA,
                envir=new.env(),
                quiet = TRUE
         )  
-      }); beepr::beep()
+      }); #beepr::beep(1)
       
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
