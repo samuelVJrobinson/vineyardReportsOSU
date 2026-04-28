@@ -9,9 +9,6 @@
 #' @param plDatCSV (Optional) output csv of all plant records. Skips writing if NA.
 #' @param predictedBeesCSV (Optional) output csv of predicted bees for each project. Skips writing if NA.
 #' @param dataStoragePath (Optional) .Rdata storage path for internal function data. Skips writing if NA.
-#' @param famGenPath (Optional) Path to bee genus-family lookup csv. If NA uses lookup table from Pizkulich et al 2023 (DOI: 10.5061/dryad.80gb5mkw1).
-#' @param ecoregShpPath (Optional) Path to ecoregion polygons. Uses internal if NA.
-#' @param beeAbstractsPath (Optional) Path to bee/plant Abstract csv.
 #' 
 #' @return Nothing - writes to plDatCSV, predictedBeesCSV, or dataStoragePath
 #' @export
@@ -48,25 +45,25 @@ makeReports2 <- function(plantListCSV = NA,
                         famGenPath = NA
 ){
   
-  #Debug
-  devtools::load_all(".") #Load package
-  plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN.csv"
-  beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
-  beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
-                     "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
-                     "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
-                     "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
-  iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
-  reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
-  plDatCSV = NA
-  predictedBeesCSV = NA
-  dataStoragePath = NA
-  famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
-  ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
-  stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
-  beeAbstractsPath = NA
-  vy = 1
-  rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
+  # #Debug
+  # devtools::load_all(".") #Load package
+  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN.csv"
+  # beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
+  # beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
+  #                    "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
+  #                    "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
+  #                    "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
+  # iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
+  # reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
+  # plDatCSV = NA
+  # predictedBeesCSV = NA
+  # dataStoragePath = NA
+  # famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
+  # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
+  # stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
+  # beeAbstractsPath = NA
+  # vy = 6
+  # rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
   
@@ -369,14 +366,15 @@ makeReports2 <- function(plantListCSV = NA,
       stop(paste0('Columns missing from iNaturalist record: ',x,'. Required columns: ',paste0(reqCols,collapse = ', ')))
     }
     l <- l %>% select(any_of(reqCols)) %>% #Select relevant columns
-      # mutate(vineyard=gsub('(^.+\\d{4}/|\\.csv$)','',x)) %>% #Gets name and year
-      mutate(vineyard=gsub('.csv','',basename(x))) %>% #Gets name and year
-      mutate(year=format(as.Date(observed_on),format='%Y')) %>% select(-observed_on)
+      mutate(vineyard=gsub('.csv','',basename(x))) #Gets name
     return(l)
   }
   
   #Get all CSVs and assemble into single dataframe
-  iNatPlDat <- lapply(csvPaths,getCSVs) %>% bind_rows() %>%
+  iNatPlDat <- lapply(csvPaths,getCSVs) %>% bind_rows() %>% tibble() %>% 
+    mutate(year=format(as.Date(observed_on,format='%Y-%m-%d'),format='%Y')) %>% #Gets year, but date format changes...
+    # mutate(year=str_extract(observed_on,'\\d{4}')) %>% #Gets year
+    # select(-observed_on) %>% 
     filter(!grepl('eae$',scientific_name)) %>% #Removes family
     filter(!scientific_name %in% unique(beeData$genSpp)) %>% #Removes bee names (didn't record plant)
     mutate(scientific_name=gsub('(\\s.\\s.*$|\\s.$)','',scientific_name)) %>% #Removes hybrid "x" markings
@@ -389,6 +387,14 @@ makeReports2 <- function(plantListCSV = NA,
     st_as_sf(coords=c('longitude','latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #%>% st_drop_geometry() %>% mutate(vyName=basename(vineyard)) %>% count(vyName)
+  
+  #Check date format
+  badDates <- is.na(iNatPlDat$year) | as.numeric(iNatPlDat$year)<2010
+  if(any(badDates)){
+    stop(paste0('Date format not recognized in the following iNat projects:\n',
+                iNatPlDat %>% st_drop_geometry() %>% filter(badDates) %>% pull(vineyard) %>% unique() %>% paste0(.,collapse=','),
+                '\nobserved_on column must be in YYYY-MM-DD format'))
+  }
   
   #Join ecoregions/states/provinces to iNat plantdata
   iNatPlDat$ecoreg <- gsub('\n',' ',ecoReg$name)[st_within_fast(iNatPlDat,ecoReg)] #Get rid of carriage return in ecoregion name
@@ -450,20 +456,7 @@ makeReports2 <- function(plantListCSV = NA,
     } else {
       d <- bdat %>% filter(ecoreg==nm) %>% st_drop_geometry() #Filters data to ecoregion. Could use some kind of tidyr nested dataframe approach
     }
-    
-    #dataframe: Bee spp -> flower spp
-    sppList <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
-      select(genSpp,ForagePlant) %>% na.omit() %>%
-      group_by(ForagePlant) %>%
-      summarize(beeSpp=paste0(genSpp,collapse = ','))
-    
-    #dataframe: Bee spp -> plant genera (plant spp unknown)
-    genList <- d %>% filter(!is.na(Species)) %>%
-      select(genSpp,plantGenus) %>% na.omit() %>%
-      group_by(plantGenus) %>%
-      summarize(beeSpp=paste0(unique(genSpp),collapse = ',')) %>%
-      rename(ForagePlant=plantGenus)
-    
+
     #matrix: Bee spp -> plant spp (all)
     ntwk_all <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
       select(genSpp,ForagePlant) %>% na.omit() %>%
@@ -473,43 +466,14 @@ makeReports2 <- function(plantListCSV = NA,
       pivot_wider(names_from=ForagePlant,values_from=n,values_fill = 0) %>%
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
-    #matrix: Bee spp -> plant spp (nonweedy natives only)  - recommended plant spp for growers
+    #matrix: Bee spp -> plant spp (nonweedy non-noxious only)  - recommended plant spp for growers
     ntwk_noWeed <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
       select(genSpp,ForagePlant) %>% na.omit() %>%
       left_join(select(pList,Scientific_name,isWeedy,isNoxious,isNative),  #Joins in plant traits
                 by = c('ForagePlant'='Scientific_name')) %>%
-      filter(!is.na(isWeedy),!isNoxious,!isWeedy,isNative) %>%
+      filter(!is.na(isWeedy),!isNoxious,!isWeedy) %>%
       count(genSpp,ForagePlant) %>%
       pivot_wider(names_from=ForagePlant,values_from=n,values_fill = 0) %>%
-      column_to_rownames('genSpp') %>% as.matrix() %>% t()
-    
-    #matrix: Bee genus -> plant genus (all)
-    ntwk_gen_all <- d %>% select(Genus,plantGenus) %>% na.omit() %>% 
-      count(Genus,plantGenus) %>%
-      pivot_wider(names_from=plantGenus,values_from=n,values_fill = 0) %>%
-      column_to_rownames('Genus') %>% as.matrix() %>% t()
-    
-    #matrix: Bee Species -> plant genus (all) 
-    ntwk_genSpp_all <- d %>% filter(!is.na(Species)) %>%
-      select(genSpp,plantGenus) %>% na.omit() %>%
-      count(genSpp,plantGenus) %>%
-      pivot_wider(names_from=plantGenus,values_from=n,values_fill = 0) %>%
-      column_to_rownames('genSpp') %>% as.matrix() %>% t()
-    
-    #Temporary plant list with only genus-level info
-    plantList2 <- pList %>% select(Scientific_name,isWeedy,isNoxious,isNative) %>% 
-      mutate(Genus_name=gsub('\\s.*$','',Scientific_name)) %>% 
-      group_by(Genus_name) %>% 
-      #"Abraham's bargain": is there at least 1 nonweedy, nonnoxious, and native Species?
-      summarize(isNonWeedy=any(!isWeedy),isNonNoxious=any(!isNoxious),isNative=any(isNative))
-    
-    #matrix: Bee Species -> plant genus (all) - Recommended plant Species for growers
-    ntwk_genSpp_noWeed <- d %>% filter(!is.na(Species)) %>%
-      select(genSpp,plantGenus) %>% na.omit() %>%
-      left_join(plantList2,by = c('plantGenus'='Genus_name')) %>%
-      filter(!is.na(isNonWeedy),isNonNoxious,isNonWeedy,isNative) %>%
-      count(genSpp,plantGenus) %>%
-      pivot_wider(names_from=plantGenus,values_from=n,values_fill = 0) %>%
       column_to_rownames('genSpp') %>% as.matrix() %>% t()
     
     #Which bees are rare? - using a simple definition (>median)
@@ -526,63 +490,47 @@ makeReports2 <- function(plantListCSV = NA,
       Sys.sleep(1)
       topSpp <- topGen <- NA
     } else {
-      #Top plant species for ecoregion (based on Chao1 richness from plant spp - bee spp network)
+      #Plant species for ecoregion (based on Chao1 richness from plant spp - bee spp network)
       #Uses ntwk_noWeed - excludes weeds and nonnative
-      topSpp <- vegan::estimateR(ntwk_noWeed) %>% t() %>% 
-        data.frame() %>% 
-        rownames_to_column('plantSpp') %>%
-        select(plantSpp:S.chao1) %>% arrange(desc(S.chao1)) %>% 
-        rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
-        mutate(Nbees_rare=rowSums(ntwk_noWeed[,colnames(ntwk_noWeed) %in% rareBees$genSpp,drop=FALSE])) %>%
-        arrange(desc(Nbees)) %>%
+      topSpp <- vegan::estimateR(ntwk_all) %>% t() %>% data.frame() %>% 
+        rownames_to_column('plantSpp') %>%select(plantSpp:S.chao1) %>% 
+        arrange(desc(S.chao1)) %>% rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
+        mutate(Nbees_rare=rowSums(ntwk_all[,colnames(ntwk_all) %in% rareBees$genSpp,drop=FALSE])) %>%
+        arrange(desc(Nbees)) 
+      
+      #Join in plant trait information from pList - retains weedy, noxious, nonnative
+      topSpp <- select(pList,Scientific_name,Common_name,Lifecycle,isWeedy,isNoxious,isNative,Bloom_start,Bloom_end) %>% 
+        filter(!grepl('spp.',Scientific_name)) %>% 
+        right_join(topSpp,by=c('Scientific_name'='plantSpp')) %>% 
         #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
         mutate(quality=case_when( #Cutoffs for forage plant "quality"
           Nbees_estim >median(Nbees_estim) & Nbees_rare >0 ~ 'super',
           xor(Nbees_estim > median(Nbees_estim),Nbees_rare >0) ~ 'good',
           TRUE ~ 'poor')) %>% 
         mutate(quality=factor(quality,levels=c('super','good','poor')))
+      
+      #dataframe: Bee spp that visit each flower spp
+      sppList <- d %>% filter(!is.na(Species),!is.na(plantSpp)) %>%
+        select(genSpp,ForagePlant) %>% na.omit() %>%
+        group_by(ForagePlant) %>%
+        summarize(beeSpp=paste0(genSpp,collapse = ','))
+      
+      #Join bee species for each flower
+      sppList <- topSpp %>% left_join(sppList,by=c('Scientific_name'='ForagePlant'))
+      
     }
     
-    ##Removing this for now
-    # if(any(dim(ntwk_genSpp_noWeed)==0)){ 
-    #   if(any(dim(ntwk_genSpp_all)==0)){
-    #     message('No plant genus data found for ',nm,'\n')
-    #   } else{
-    #     message('No non-weedy plant genus data for ',nm,'\n')  
-    #   }
-    #   Sys.sleep(1)
-    #   topGen <- NA
-    # } else {
-    #   #Top plant genera (Chao1 richness from plant genus - bee spp network)
-    #   topGen <- vegan::estimateR(ntwk_genSpp_all) %>% t() %>% 
-    #     data.frame() %>% 
-    #     rownames_to_column('plantGen') %>%
-    #     select(plantGen:S.chao1) %>% arrange(desc(S.chao1)) %>% 
-    #     rename(Nbees=S.obs,Nbees_estim=S.chao1) %>%
-    #     mutate(Nbees_rare=rowSums(ntwk_genSpp_all[,colnames(ntwk_genSpp_all) %in% rareBees$genSpp,drop=FALSE])) %>%
-    #     arrange(desc(Nbees)) %>%
-    #     #Creates plant "quality" rankings, based on number of rare bees hosted (>0) and overall visitor richness (>median)
-    #     mutate(quality=case_when( #Cutoffs for forage plant "quality"
-    #       Nbees_estim >median(Nbees_estim) & Nbees_rare >0 ~ 'super',
-    #       xor(Nbees_estim > median(Nbees_estim),Nbees_rare >0) ~ 'good',
-    #       TRUE ~ 'poor')) %>% 
-    #     mutate(quality=factor(quality,levels=c('super','good','poor')))
-    # }
-    
     #Output list
-    return(list('sppList'=sppList,'genList'=genList,
-                'ntwk_all'=ntwk_all,'ntwk_noWeed'=ntwk_noWeed,
-                'ntwk_gen_all'=ntwk_gen_all,'ntwk_genSpp_all'=ntwk_genSpp_all,
-                'topSpp'=topSpp,#'topGen'=topGen,
-                'rareBees'=rareBees))
+    return(list('sppList'=sppList, #Summary list of all plant species
+                'ntwk_all'=ntwk_all, #Network matrix
+                'ntwk_noWeed'=ntwk_noWeed, #Network matrix - no weeds/noxious plants
+                'rareBees'=rareBees)) #List of rare bees
   }
-  
   
   useEcoReg <- c(ecoReg$name[ecoReg$name %in% unique(iNatPlDat$ecoreg)],'ALL') #Get names of ecoregions to use + "ALL"
   
   #Assemble regional networks into a list
-  ecoRegNetworks <- lapply(useEcoReg,getRegNtwks,bdat=beeData,pList=plantList) %>% 
-    set_names(useEcoReg)
+  ecoRegNetworks <- lapply(useEcoReg,getRegNtwks,bdat=beeData,pList=plantList) %>% set_names(useEcoReg)
   
   #Get associated states/provinces for each ecoregion
   ecoRegStatProvs <- c(filter(ecoReg,name %in% names(ecoRegNetworks)[names(ecoRegNetworks)!='ALL'])$ProvStateName, #Individual ecoregions
@@ -594,9 +542,6 @@ makeReports2 <- function(plantListCSV = NA,
   #Add state/prov names to ecoregion networks
   ecoRegNetworks <- Map(function(er,ersp) c(list(ProvStateName=ersp),er), ecoRegNetworks,ecoRegStatProvs)
   ecoRegNetworks <- Map(function(er,ersp) c(list(CountryName=ersp),er), ecoRegNetworks,ecoRegCountries) 
-  
-  #Cleanup
-  rm(useEcoReg,ecoRegStatProvs,ecoRegCountries)
   
   #Get unique interaction matrices for each unique iNat project
   
@@ -623,9 +568,7 @@ makeReports2 <- function(plantListCSV = NA,
     #Lists of species and genus (subset of regional lists)
     m <- list(
       #List of plant species along with associated bee species
-      'sppList'= filter(erNtwk[[vyEcoreg]]$sppList,ForagePlant %in% vyPlantSpp),
-      #List of plant genera along with associated bee species
-      'genList'= filter(erNtwk[[vyEcoreg]]$genList,ForagePlant %in% vyPlantGen) 
+      'sppList'= filter(erNtwk[[vyEcoreg]]$sppList,Scientific_name %in% vyPlantSpp) 
     )
     
     if(any(nrow(m)==0)){
@@ -651,8 +594,12 @@ makeReports2 <- function(plantListCSV = NA,
     return(c(list('ecoregNtwk_summary'=ecoregNtwk_summary),m,n))
   }
   
+  #Get information for each iNat project
   iNatNetworks <- lapply(iNatProjNames,getInatNtwks,vpDat=iNatPlDat,erNtwk=ecoRegNetworks) %>% 
     set_names(iNatProjNames)
+  
+  #Cleanup
+  rm(iNatProjNames,useEcoReg,ecoRegStatProvs,ecoRegCountries)
   
   #Write predicted bees at each iNat project to a csv
   if(!is.na(predictedBeesCSV)){
@@ -704,7 +651,7 @@ makeReports2 <- function(plantListCSV = NA,
                envir=new.env(),
                quiet = TRUE
         )  
-      }); #beepr::beep(1)
+      }); beepr::beep(1)
       
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
