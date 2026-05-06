@@ -2,7 +2,15 @@
 replaceSynonyms <- function(x,name,synonym){
   #Many of x are duplicates, so an indexed version would be faster
   y <- sapply(x,function(xx,s){
-    if(is.na(xx)|xx=='') return(NA); r <- grep(xx,s,fixed = TRUE); if(length(r)==0) NA else r #Find matches
+    if(is.na(xx)|xx==''){
+      return(NA)
+    } 
+    r <- grep(xx,s,fixed = TRUE)
+    if(length(r)==0){
+      NA
+    } else {
+      r  
+    }  #Find matches
   },s=synonym)
   message(paste0('Replaced synonyms:\n',
                  paste0(apply(unique(cbind(x[!is.na(y)],name[y[!is.na(y)]])),1,paste,collapse=' -> '),

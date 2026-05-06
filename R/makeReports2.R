@@ -45,25 +45,26 @@ makeReports2 <- function(plantListCSV = NA,
                         famGenPath = NA
 ){
   
-  # #Debug
-  # devtools::load_all(".") #Load package
-  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN.csv"
-  # beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
-  # beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
-  #                    "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
-  #                    "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
-  #                    "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
-  # iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
-  # reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
-  # plDatCSV = NA
-  # predictedBeesCSV = NA
-  # dataStoragePath = NA
-  # famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
-  # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
-  # stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
-  # beeAbstractsPath = NA
-  # vy = 6
-  # rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
+  #Debug
+  devtools::load_all(".") #Load package
+  plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-05-05.csv"
+  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-04-01.csv"
+  beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
+  beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
+                     "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
+                     "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
+                     "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
+  iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
+  reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
+  plDatCSV = NA
+  predictedBeesCSV = NA
+  dataStoragePath = NA
+  famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
+  ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
+  stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
+  beeAbstractsPath = NA
+  vy = 6
+  rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
   
@@ -131,9 +132,9 @@ makeReports2 <- function(plantListCSV = NA,
     stop(paste0('Regional plant list must have the following columns:\n',paste0(reqPlantCols,collapse='\n')))
   }
   
-  chooseThese <- grepl('(var|ssp|spp)\\.',plantList$Scientific_name)
+  chooseThese <- grepl('(var|ssp)\\.',plantList$Scientific_name)
   if(any(chooseThese)){
-    message(paste0("Plant names with 'var', 'ssp', or 'spp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
+    message(paste0("Plant names with 'var' or 'ssp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
                    paste(plantList$Scientific_name[chooseThese],collapse = '\n'),'\n'))
     Sys.sleep(1)
     plantList <- plantList %>% filter(!chooseThese)  
@@ -265,14 +266,15 @@ makeReports2 <- function(plantListCSV = NA,
     message(paste0("Orders, families, or other non-genus groups found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) #Set as NA
+    beeData <- beeData %>% 
+      mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) #Set as NA
   }
   
-  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of lists of ForagePlant species
+  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of triple-names or varietals in ForagePlant species
   if(any(chooseThese)){
-    message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
-                   paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
-    Sys.sleep(1)
+    
+    badNames <- beeData$ForagePlant[chooseThese] #Names to replace
+    
     beeData <- beeData %>% 
       mutate(ForagePlant=case_when(is.na(ForagePlant) ~ NA_character_,
                                    grepl('Ã—',ForagePlant) ~ gsub(' Ã—.*','',ForagePlant), #Removes hybrid character, changes to genus only
@@ -280,6 +282,12 @@ makeReports2 <- function(plantListCSV = NA,
                                    str_count(ForagePlant,' ')>1 ~ sapply(str_split(ForagePlant,' '), function(x) paste0(x[1:pmin(2,length(x))],collapse=' ')), 
                                    .default = ForagePlant
                                    ))
+    newNames <- beeData$ForagePlant[chooseThese] #Replacement names
+    
+    message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Altered ",sum(chooseThese)," records from bee list\n\n",
+    paste(apply(unique(cbind(badNames,newNames)),1,paste,collapse=' -> '),collapse = '\n'),'\n'))
+    Sys.sleep(1)
+    rm(badNames,newNames,chooseThese)
   }
   
   beeData <- beeData %>% 
