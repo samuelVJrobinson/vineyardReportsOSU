@@ -68,7 +68,7 @@ makeReports <- function(plantListCSV = NA,
   library(rmarkdown)
   
   #Convenience function
-  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:' \\-\\.]",'*',x) #Gets rid of nonstandard characters that screw up LaTeX reports
+  rmBadChar <- function(x) gsub("[^a-zA-Z0-9:'-.]",' ',x,perl = TRUE) #Gets rid of nonstandard characters that screw up LaTeX reports - leaves dashes, colons, apostrophes, periods
   
   #BS checking
   
@@ -113,10 +113,12 @@ makeReports <- function(plantListCSV = NA,
   reqPlantCols <- c('Scientific_name','Synonym','Common_name','Bloom_start',
                     'Bloom_end','Lifecycle','Origin','Garden_type','Family','PlantAbstract')
   
+  #Checks columns
   if(any(!reqPlantCols %in% colnames(plantList))){
     stop(paste0('Plant list from Oregon Flora must have the following columns:\n',paste0(reqPlantCols,collapse='\n')))
   }
   
+  #Gets rid of varietal or subspecies records
   chooseThese <- grepl('(var|ssp)\\.',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Plant names with 'var' or 'ssp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -125,6 +127,7 @@ makeReports <- function(plantListCSV = NA,
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
+  #Gets rid of family or higher level taxonomy records
   chooseThese <- grepl('^\\S+(ales|eae|dae|nae)$',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Orders, families, or other non-genus groups found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -133,6 +136,7 @@ makeReports <- function(plantListCSV = NA,
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
+  #Gets rid of triple names
   chooseThese <- grepl('\\s.*\\s.*$',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Triple names (possibly varieties or culivars) found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -147,7 +151,13 @@ makeReports <- function(plantListCSV = NA,
   plantList <- plantList %>% 
     filter(Scientific_name!='') %>% rowwise() %>% #Removes blanks
     mutate(Scientific_name=ifelse(grepl('\\s',Scientific_name),Scientific_name,paste0(Scientific_name,' spp.'))) %>% #Adds spp to genus
-    mutate(Synonym=ifelse(grepl('.spp',Scientific_name)&Synonym!='',paste0(Synonym,' spp.'),Synonym)) %>% #Adds spp to Synonym 
+    mutate(Synonym=sapply(strsplit(Synonym,'\\s*,\\s*'),function(x){ #Adds spp to sub-strings of synonym column, if needed
+      if(length(x)==0){
+        return("")
+      } else {
+        paste0(sapply(x, function(y) if(!grepl(' ',y)) paste0(y,' spp.') else y),collapse=', ')
+      }
+    })) %>% ungroup() %>% 
     mutate(Common_name=str_to_title(gsub(',.*','',Common_name))) %>% #Removes all but first common name, and capitalizes
     mutate(across(c(Scientific_name,Common_name,PlantAbstract),~rmBadChar(.x))) %>% #Get rid of nonstandard punctuation marks
     mutate(Lifecycle=str_to_title(Lifecycle)) %>% 
@@ -181,8 +191,15 @@ makeReports <- function(plantListCSV = NA,
   
   #Test for duplicate names
   if(any(table(plantList$Scientific_name)>1)){
-    stop(paste0('Duplicate scientific names found in plant list: ',
-                paste0(names(which(table(plantList$Scientific_name)>1)),collapse = ', ')))
+    dupPlants <- names(which(table(plantList$Scientific_name)>1)) #Duplicated plants
+    
+    message(paste0('Duplicate scientific names found in plant list:\n',
+                   paste0(names(which(table(plantList$Scientific_name)>1)),collapse = '\n'),
+                   '\n\nRemoving all records but first in the database'))
+    for(i in 1:length(dupPlants)){
+      plantList <- plantList %>% slice(-c(which(Scientific_name == dupPlants[i])[-1]))
+    }
+    rm(dupPlants,i)
   }
   
   #List of non-native plants - also includes ones not found in complete plant list (possibly misidentified)
@@ -219,8 +236,11 @@ makeReports <- function(plantListCSV = NA,
               Latitude,Longitude) %>%
     mutate(across(where(is.character),~str_trim(.))) %>% #Trim whitespace across columns
     mutate(Date=as.Date(Date,format='%B %d %Y')) %>% #Create date
-    mutate(Genus=str_to_title(Genus),Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>%  #Capitalize spp names
-    mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
+    mutate(Genus=str_to_title(Genus)) %>%  #Capitalize spp names
+    mutate(Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>% #Match genus to family  
+    filter(!is.na(Family)) %>% #Gets rid of genera with no matching bee family
+    mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),
+           Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
     makeGenSpp(Genus,Species) #Make genSpp column
   
   chooseThese <- grepl('\\s\\(.+$',beeData$ForagePlant) #Gets rid of brackets+text after ForagePlant
@@ -249,15 +269,28 @@ makeReports <- function(plantListCSV = NA,
     message(paste0("Orders, families, or other non-genus groups found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
                    paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) 
+    beeData <- beeData %>% 
+      mutate(ForagePlant=ifelse(grepl('(^\\S+(ales|eae|dae|nae)$|Composite)',ForagePlant),NA,ForagePlant)) #Set as NA
   }
   
-  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of lists of ForagePlant species
+  chooseThese <- grepl('(,|^\\S+\\s\\S+\\s.*$)',beeData$ForagePlant) #Gets rid of triple-names or varietals in ForagePlant species
   if(any(chooseThese)){
-    message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Removed ",sum(chooseThese)," records from bee list\n",
-                   paste(unique(na.omit(beeData$ForagePlant[chooseThese])),collapse='\n'),'\n'))
+    
+    badNames <- beeData$ForagePlant[chooseThese] #Names to replace
+    
+    beeData <- beeData %>% 
+      mutate(ForagePlant=case_when(is.na(ForagePlant) ~ NA_character_,
+                                   grepl('Ã—',ForagePlant) ~ gsub(' Ã—.*','',ForagePlant), #Removes hybrid character, changes to genus only
+                                   #Removes varietal, keeps genus + spp
+                                   str_count(ForagePlant,' ')>1 ~ sapply(str_split(ForagePlant,' '), function(x) paste0(x[1:pmin(2,length(x))],collapse=' ')), 
+                                   .default = ForagePlant
+      ))
+    newNames <- beeData$ForagePlant[chooseThese] #Replacement names
+    
+    message(paste0("Lists of plants or triple-name varietals found in ForagePlant names in bee list. Altered ",sum(chooseThese)," records from bee list\n\n",
+                   paste(apply(unique(cbind(badNames,newNames)),1,paste,collapse=' -> '),collapse = '\n'),'\n'))
     Sys.sleep(1)
-    beeData <- beeData %>% mutate(ForagePlant=ifelse(grepl('(,|^\\S+\\s\\S+\\s.*$)',ForagePlant),NA,ForagePlant)) 
+    rm(badNames,newNames,chooseThese)
   }
   
   beeData <- beeData %>% 
@@ -271,17 +304,33 @@ makeReports <- function(plantListCSV = NA,
            plantSpp=ifelse(grepl(" ",ForagePlant),gsub("^\\w+\\s","",ForagePlant),NA)) %>%
     mutate(plantSpp=ifelse(plantSpp=='spp.',NA,plantSpp)) %>%
     mutate(across(c(ForagePlant),~rmBadChar(.x))) %>% #Get rid of remaining nonstandard characters
+    mutate(across(c(ForagePlant),~gsub('  ',' ',.x))) %>% #Get rid of double spaces produced by replacing nonstandard characters
+    filter(!is.na(ForagePlant)) %>% #Remove records with no forage plant
     filter(!is.na(Latitude)&!is.na(Longitude)) %>%
     st_as_sf(coords=c('Longitude','Latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #Transform to Oregon Lambert system
+  
+  #Common names for bee families
+  commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
+                          common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
+    mutate(plotLab=paste0(Family,'\n(',common,')'))
+  
+  #Check whether species in bee data are found in plant database
+  foragePlantMissing <- sort(unique(beeData$ForagePlant[!beeData$ForagePlant %in% plantList$Scientific_name]))
+  
+  if(length(foragePlantMissing)>0){
+    message(paste0(length(foragePlantMissing), " forage plant species in bee database were not found in plant list:\n\n",
+                   paste(foragePlantMissing,collapse = '\n'),'\n'))
+    Sys.sleep(1)
+  }
   
   # Load spatial data ------------------------
   print('Loading county/ecoregion polygons')
   #Shapefiles of Oregon counties
   
   #Gets path from internal data if NA
-  orCountyShpPath <- ifelse(is.na(orCountyShpPath),system.file('extdata','orcntypoly.shp',package=packageName(),mustWork = TRUE),orCountyShpPath)
+  orCountyShpPath <- ifelse(is.na(orCountyShpPath),system.file('shapefiles','orcntypoly.shp',package=packageName(),mustWork = TRUE),orCountyShpPath)
   orCounties <- st_read(orCountyShpPath,quiet = TRUE) #Read in county polygons
   
   if(any(!c('altName','geometry') %in% colnames(orCounties))){
@@ -294,7 +343,7 @@ makeReports <- function(plantListCSV = NA,
   #Shapefiles of Oregon ecoregions
   
   #Gets path from internal data if NA
-  orEcoregShpPath <- ifelse(is.na(orEcoregShpPath),system.file('extdata','or_eco_l3.shp',package=packageName(),mustWork = TRUE),orEcoregShpPath)
+  orEcoregShpPath <- ifelse(is.na(orEcoregShpPath),system.file('shapefiles','or_eco_l3.shp',package=packageName(),mustWork = TRUE),orEcoregShpPath)
   orEcoReg <- st_read(orEcoregShpPath,quiet = TRUE)
   
   if(any(!c('NA_L3NAME','geometry') %in% colnames(orEcoReg))){
@@ -347,14 +396,15 @@ makeReports <- function(plantListCSV = NA,
       stop(paste0('Columns missing from iNaturalist record: ',x,'. Required columns: ',paste0(reqCols,collapse = ', ')))
     }
     l <- l %>% select(reqCols) %>% #Select relevant columns
-      mutate(vineyard=gsub('(^.+\\d{4}/|\\.csv$)','',x)) %>% #Gets vineyard name and year
-      mutate(year=format(as.Date(observed_on),format='%Y')) %>% select(-observed_on)
+      mutate(vineyard=gsub('(^.+\\d{4}/|\\.csv$)','',x)) #Gets vineyard name
     return(l)
   }
   
   #Get all CSVs and assemble into single dataframe
   vinePlDat <- lapply(csvPaths,getCSVs) %>% 
-    bind_rows() %>% 
+    bind_rows() %>% tibble() %>% 
+    mutate(year=format(as.Date(observed_on,format='%Y-%m-%d'),format='%Y')) %>% #Gets year, but date format changes...
+    filter(!is.na(latitude)) %>% 
     filter(!grepl('eae$',scientific_name)) %>% #Removes family
     filter(!scientific_name %in% unique(beeData$genSpp)) %>% #Removes bee names (didn't record plant)
     mutate(scientific_name=gsub('(\\s.\\s.*$|\\s.$)','',scientific_name)) %>% #Removes hybrid "x" markings
@@ -367,6 +417,14 @@ makeReports <- function(plantListCSV = NA,
     st_as_sf(coords=c('longitude','latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643)
+  
+  #Check date format
+  badDates <- is.na(vinePlDat$year) | as.numeric(vinePlDat$year)<2010
+  if(any(badDates)){
+    stop(paste0('Date format not recognized in the following iNat projects:\n',
+                vinePlDat %>% st_drop_geometry() %>% filter(badDates) %>% pull(vineyard) %>% unique() %>% paste0(.,collapse=','),
+                '\nobserved_on column must be in YYYY-MM-DD format'))
+  }
   
   #Join ecoregions and counties to vineyard data
   vinePlDat$ecoreg <- gsub('\n',' ',orEcoReg$name)[st_within_fast(vinePlDat,orEcoReg)] #Get rid of carriage return in ecoregion name
@@ -848,7 +906,7 @@ makeReports <- function(plantListCSV = NA,
                output_file = paste0(names(vyNetworks)[vy],'-report'),
                output_format = "pdf_document",
                output_dir = reportFolder,
-               intermediates_dir = reportFolder,
+               # intermediates_dir = reportFolder, #Doesn't produce maps correctly if specified
                knit_root_dir = reportFolder,
                params = list(set_title=names(vyNetworks)[vy]),
                envir=new.env(),

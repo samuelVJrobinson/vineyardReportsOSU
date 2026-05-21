@@ -45,26 +45,25 @@ makeReports2 <- function(plantListCSV = NA,
                         famGenPath = NA
 ){
   
-  #Debug
-  devtools::load_all(".") #Load package
-  plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-05-05.csv"
-  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-04-01.csv"
-  beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
-  beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
-                     "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
-                     "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
-                     "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
-  iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
-  reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
-  plDatCSV = NA
-  predictedBeesCSV = NA
-  dataStoragePath = NA
-  famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
-  ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
-  stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
-  beeAbstractsPath = NA
-  vy = 6
-  rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
+  # #Debug
+  # devtools::load_all(".") #Load package
+  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-05-08.csv"
+  # beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
+  # beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
+  #                    "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
+  #                    "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
+  #                    "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
+  # iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
+  # reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
+  # plDatCSV = NA
+  # predictedBeesCSV = NA
+  # dataStoragePath = NA
+  # famGenPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\extdata\\famGenLookup.csv"
+  # ecoregShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_ecoregions.gpkg"
+  # stateProvShpPath = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\data\\shapefiles\\NA_statesProvs.gpkg"
+  # beeAbstractsPath = NA
+  # vy = 6
+  # rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
   
@@ -128,10 +127,12 @@ makeReports2 <- function(plantListCSV = NA,
   reqPlantCols <- c('Scientific_name','Synonym','Common_name','Bloom_start',
                     'Bloom_end','Lifecycle','Origin','Garden_type','Family','PlantAbstract')
   
-  if(any(!reqPlantCols %in% colnames(plantList))){
+  #Checks columns
+  if(any(!reqPlantCols %in% colnames(plantList))){ 
     stop(paste0('Regional plant list must have the following columns:\n',paste0(reqPlantCols,collapse='\n')))
   }
   
+  #Gets rid of varietal or subspecies records
   chooseThese <- grepl('(var|ssp)\\.',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Plant names with 'var' or 'ssp' found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -140,6 +141,7 @@ makeReports2 <- function(plantListCSV = NA,
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
+  #Gets rid of family or higher level taxonomy records
   chooseThese <- grepl('^\\S+(ales|eae|dae|nae)$',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Orders, families, or other non-genus groups found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -148,6 +150,7 @@ makeReports2 <- function(plantListCSV = NA,
     plantList <- plantList %>% filter(!chooseThese)  
   }
   
+  #Gets rid of triple names
   chooseThese <- grepl('\\s.*\\s.*$',plantList$Scientific_name)
   if(any(chooseThese)){
     message(paste0("Triple names (possibly varieties or culivars) found in plant list. Excluded ",sum(chooseThese)," from plant list\n",
@@ -162,30 +165,18 @@ makeReports2 <- function(plantListCSV = NA,
   plantList <- plantList %>% 
     filter(Scientific_name!='') %>% rowwise() %>% #Removes blanks
     mutate(Scientific_name=ifelse(grepl('\\s',Scientific_name),Scientific_name,paste0(Scientific_name,' spp.'))) %>% #Adds spp to genus
-    mutate(Synonym=ifelse(grepl('.spp',Scientific_name)&Synonym!='',paste0(Synonym,' spp.'),Synonym)) %>% #Adds spp to Synonym 
+    mutate(Synonym=sapply(strsplit(Synonym,'\\s*,\\s*'),function(x){ #Adds spp to sub-strings of synonym column, if needed
+      if(length(x)==0){
+        return("")
+      } else {
+        paste0(sapply(x, function(y) if(!grepl(' ',y)) paste0(y,' spp.') else y),collapse=', ')
+      }
+    })) %>% ungroup() %>% 
     mutate(Common_name=str_to_title(gsub(',.*','',Common_name))) %>% #Removes all but first common name, and capitalizes
     mutate(across(c(Scientific_name,Common_name,PlantAbstract),~rmBadChar(.x))) %>% #Get rid of nonstandard punctuation marks
     mutate(Lifecycle=str_to_title(Lifecycle)) %>% 
     rename(isNoxious=Noxious_weed,isWeedy=Weedy_species) 
-  
-  #Adds genera to list if not already present
-  plGen <- unique(gsub('\\s.*','',plantList$Scientific_name)) #Unique plant genera
-  noGen <- plGen[!plGen %in% gsub('\\s.*','',plantList$Scientific_name[grepl('.spp',plantList$Scientific_name)])] #Listed plant species with no generic-level (X spp.) record
-  if(length(noGen)>0){
-    message(paste0('Genus-level information for ',length(noGen),' listed plant species missing. Adding missing genera:',
-                   paste(c('\n',noGen),collapse = '\n'),'\n'))
-    Sys.sleep(1)
-    cstring <- function(x) paste0(unique(unlist(strsplit(x,', '))),collapse=', ')
     
-    #Gets plants that don't have a genus-level record, and amalgamates lifecycle, origin, and garden info
-    plantList <- plantList %>% select(Scientific_name,Lifecycle,Origin:Garden_type,Family) %>% 
-      mutate(Scientific_name=gsub('\\s.*','',Scientific_name)) %>% 
-      filter(Scientific_name %in% noGen) %>% mutate(Scientific_name=paste0(Scientific_name,' spp.')) %>% 
-      group_by(Scientific_name) %>% summarize(across(c(Lifecycle,Origin,Garden_type),cstring),
-                                              across(c(isNoxious,isWeedy),~any(!.x))) %>% 
-      bind_rows(plantList) #Adds to the original plant list  
-  }
-   
   #Adds columns of plant traits 
   plantList <- plantList %>% 
     mutate(isNative=grepl('(N|n)ative',Origin,)) %>%
@@ -196,15 +187,18 @@ makeReports2 <- function(plantListCSV = NA,
   
   #Test for duplicate names
   if(any(table(plantList$Scientific_name)>1)){
-    stop(paste0('Duplicate scientific names found in plant list: ',
-                paste0(names(which(table(plantList$Scientific_name)>1)),collapse = ', ')))
+    dupPlants <- names(which(table(plantList$Scientific_name)>1)) #Duplicated plants
+    
+    message(paste0('Duplicate scientific names found in plant list:\n',
+                   paste0(names(which(table(plantList$Scientific_name)>1)),collapse = '\n'),
+                   '\n\nRemoving all records but first in the database'))
+    for(i in 1:length(dupPlants)){
+      plantList <- plantList %>% slice(-c(which(Scientific_name == dupPlants[i])[-1]))
+    }
+    rm(dupPlants,i)
   }
   
   #List of non-native plants - also includes ones not found in complete plant list (possibly misidentified)
-  nonNativeGen <- plantList %>% select(Scientific_name,isNative) %>%
-    mutate(Scientific_name=gsub('\\s.*$','',Scientific_name)) %>% group_by(Scientific_name) %>%
-    summarize(anyNative=any(isNative)) %>% filter(!anyNative) %>% pull(Scientific_name)
-  
   nonNativeSpp <- plantList %>% select(Scientific_name,isNative) %>% 
     filter(grepl('\\s',Scientific_name)) %>% filter(!isNative) %>% 
     pull(Scientific_name)
@@ -237,8 +231,8 @@ makeReports2 <- function(plantListCSV = NA,
     mutate(Genus=str_to_title(Genus),Genus=gsub('\\s.*$','',Genus)) %>% #Capitalize spp names,remove subgenera
     mutate(Family=famGen$lookupFam[match(Genus,famGen$Genus)]) %>% #Match genus to family  
     filter(!is.na(Family)) %>% #Gets rid of genera with no matching bee family
-    mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
-    # filter(!is.na(Family)) %>% #Filter out records that don't have a family name
+    mutate(Family=ifelse(Genus=='Anthophorini','Apidae',Family),
+           Family=ifelse(Genus=='Anthophorini',NA,Family)) %>% #Fix tribe name
     makeGenSpp(Genus,Species) #Make genSpp column
   
   chooseThese <- grepl('\\s\\(.+$',beeData$ForagePlant) #Gets rid of brackets+text after ForagePlant
@@ -368,7 +362,7 @@ makeReports2 <- function(plantListCSV = NA,
   print('Loading iNaturalist records')
   #Function to get CSV files
   getCSVs <- function(x){ 
-    l <- read.csv(x,strip.white = TRUE) #Read in csvs
+    l <- read.csv(x,strip.white = TRUE,sep = ',') #Read in csvs
     reqCols <- c('latitude','longitude','scientific_name','common_name','observed_on') #Required columns names
     if(any(!reqCols %in% colnames(l))){ #If observed_on not found in iNat record
       stop(paste0('Columns missing from iNaturalist record: ',x,'. Required columns: ',paste0(reqCols,collapse = ', ')))
@@ -381,8 +375,7 @@ makeReports2 <- function(plantListCSV = NA,
   #Get all CSVs and assemble into single dataframe
   iNatPlDat <- lapply(csvPaths,getCSVs) %>% bind_rows() %>% tibble() %>% 
     mutate(year=format(as.Date(observed_on,format='%Y-%m-%d'),format='%Y')) %>% #Gets year, but date format changes...
-    # mutate(year=str_extract(observed_on,'\\d{4}')) %>% #Gets year
-    # select(-observed_on) %>% 
+    filter(!is.na(latitude)) %>% 
     filter(!grepl('eae$',scientific_name)) %>% #Removes family
     filter(!scientific_name %in% unique(beeData$genSpp)) %>% #Removes bee names (didn't record plant)
     mutate(scientific_name=gsub('(\\s.\\s.*$|\\s.$)','',scientific_name)) %>% #Removes hybrid "x" markings
@@ -394,7 +387,7 @@ makeReports2 <- function(plantListCSV = NA,
     mutate(common_name=str_to_title(gsub(',.*','',common_name))) %>% #Capitalizes common names, and chooses only first one (if separated by commas)
     st_as_sf(coords=c('longitude','latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
-    st_transform(3643) #%>% st_drop_geometry() %>% mutate(vyName=basename(vineyard)) %>% count(vyName)
+    st_transform(3643) 
   
   #Check date format
   badDates <- is.na(iNatPlDat$year) | as.numeric(iNatPlDat$year)<2010

@@ -1,20 +1,21 @@
 #Finds x matches in 'synonym', and replaces them with 'name'
 replaceSynonyms <- function(x,name,synonym){
-  #Many of x are duplicates, so an indexed version would be faster
-  y <- sapply(x,function(xx,s){
-    if(is.na(xx)|xx==''){
-      return(NA)
-    } 
-    r <- grep(xx,s,fixed = TRUE)
-    if(length(r)==0){
-      NA
-    } else {
-      r  
-    }  #Find matches
-  },s=synonym)
+  
+  if(any(is.na(name))|any(name=='')) stop('NAs or blanks found in replacement names')
+  if(length(name)!=length(synonym)) stop('replacement names and synonyms vectors are not the same length')
+  name <- name[!is.na(synonym)&!synonym=='']; synonym <- synonym[!is.na(synonym)&!synonym==''] #Remove NAs/blanks
+  synonym <- strsplit(synonym,',\\s*') #Split synonyms
+  name <- rep(name,sapply(synonym,length)) #Replicate names over length of synonyms
+  synonym <- unlist(synonym)
+  # cbind(name,synonym)
+  
+  nmMatch <- match(x,synonym,nomatch = 0) #Makes matching indices
+  xMatch <- which(nmMatch!=0)
+  nmMatch <- nmMatch[nmMatch!=0]
+  x[xMatch] <- name[nmMatch]
+  
   message(paste0('Replaced synonyms:\n',
-                 paste0(apply(unique(cbind(x[!is.na(y)],name[y[!is.na(y)]])),1,paste,collapse=' -> '),
+                 paste0(apply(unique(cbind(name,synonym)),1,paste,collapse=' -> '),
                         collapse='\n')))
-  x[!is.na(y)] <- name[y[!is.na(y)]] #Replace matches
-  x
+  return(x)
 }
