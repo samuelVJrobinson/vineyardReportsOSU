@@ -24,10 +24,10 @@ cleanReportData <- function(plantListCSV = NA,
                         beeDataColumns = NA,
                         iNatFolder = NA,
                         plDatCSV = NA,
-                        missingPlDatCSV = NA,
-                        famGenPath = NA, 
-                        ecoregShpPath = NA, 
-                        stateProvShpPath = NA
+                        missingPlDatCSV = NA
+                        # famGenPath = NA, 
+                        # ecoregShpPath = NA, 
+                        # stateProvShpPath = NA
 ){
   
   #Required libraries
@@ -65,16 +65,17 @@ cleanReportData <- function(plantListCSV = NA,
   }
   
   #Optional input
-  chkInputs <- sapply(c(famGenPath),function(x) is.na(x)||file.exists(x))
-  if(any(!chkInputs)){
-    stop(paste0('Input ', paste0(c('famGenPath')[!chkInputs],collapse=', '),' must be specified correctly. Check that path is specified and files exist'))
-  }
+  # chkInputs <- sapply(c(famGenPath),function(x) is.na(x)||file.exists(x))
+  # if(any(!chkInputs)){
+  #   stop(paste0('Input ', paste0(c('famGenPath')[!chkInputs],collapse=', '),' must be specified correctly. Check that path is specified and files exist'))
+  # }
   
   #Get paths to iNaturalist csvs
   csvPaths <- list.files(iNatFolder,full.names = TRUE, recursive = TRUE,pattern = '.csv') #Gets list of csvs in "./data" folder
   
   #Bee family-genus lookup
-  famGen <- read.csv(ifelse(is.na(famGenPath),system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE),famGenPath)) %>% 
+  # famGen <- read.csv(ifelse(is.na(famGenPath),system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE),famGenPath)) %>%
+  famGen <- read.csv(system.file('extdata','famGenLookup.csv',package=packageName(),mustWork = TRUE)) %>% 
     select(Family,Genus) %>% #Cut out Tribe/Subfamilies
     rename(lookupFam=Family) #Bee genus-family lookup table
   
@@ -271,7 +272,8 @@ cleanReportData <- function(plantListCSV = NA,
   
   #Gets path from internal data
   ecoReg <- st_read(
-    ifelse(is.na(ecoregShpPath),system.file('shapefiles','NA_ecoregions.gpkg',package=packageName(),mustWork = TRUE),ecoregShpPath),
+    # ifelse(is.na(ecoregShpPath),system.file('shapefiles','NA_ecoregions.gpkg',package=packageName(),mustWork = TRUE),ecoregShpPath),
+    system.file('shapefiles','NA_ecoregions.gpkg',package=packageName(),mustWork = TRUE),
     quiet = TRUE) %>% rename(geometry=geom)
   
   if(any(!c('EcoRegName','ProvStateName','CountryName','geometry') %in% colnames(ecoReg))){
@@ -300,7 +302,8 @@ cleanReportData <- function(plantListCSV = NA,
   
   #Load state/province polygons
   stateProvs <- st_read(
-    ifelse(is.na(stateProvShpPath),system.file('shapefiles','NA_statesProvs.gpkg',package=packageName(),mustWork = TRUE),stateProvShpPath),
+    # ifelse(is.na(stateProvShpPath),system.file('shapefiles','NA_statesProvs.gpkg',package=packageName(),mustWork = TRUE),stateProvShpPath),
+    system.file('shapefiles','NA_statesProvs.gpkg',package=packageName(),mustWork = TRUE),
     quiet = TRUE) %>% rename(geometry=geom)
   
   #Load and clean up iNaturalist records ------------------------
@@ -354,7 +357,7 @@ cleanReportData <- function(plantListCSV = NA,
   iNatPlDat$stateProv <- stateProvs$NAME_En[st_within_fast(st_transform(iNatPlDat,st_crs(stateProvs)),stateProvs)]
   iNatPlDat$country <- stateProvs$COUNTRY[st_within_fast(st_transform(iNatPlDat,st_crs(stateProvs)),stateProvs)] 
   
-  iNatProjNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Names names from csv paths
+  iNatProjNames <- gsub('.csv','',sort(unique(basename(csvPaths)))) #Names from csv paths
   
   if(any(!iNatProjNames %in% unique(iNatPlDat$vineyard))){ #If there are any vineyards that have been completely filtered out  (empty)
     message(paste0('Some projects were not present after iNat record filtering. Check to make sure the locations of iNat records are within ecoregions, and that they contain plant genus information:\n\n',
@@ -390,7 +393,7 @@ cleanReportData <- function(plantListCSV = NA,
   }
   
   retList <- list('plantList'=plantList,'beeData'=beeData,'iNatPlDat'=iNatPlDat,
-                  'ecoReg'=ecoReg)
+                  'ecoReg'=ecoReg,'iNatProjNames'=iNatProjNames)
   return(retList)
   
 }
