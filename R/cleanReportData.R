@@ -136,7 +136,8 @@ cleanReportData <- function(plantListCSV = NA,
     mutate(isWeedy=ifelse(isNoxious,FALSE,isWeedy)) %>% #Removes noxious species from weedy (non-overlapping sets)
     mutate(isLandscape=grepl('landscape',Garden_type),isEdge=grepl('edge areas',Garden_type),
            isRiparian=grepl('riparian',Garden_type),isOpen=grepl('open areas',Garden_type),
-           isOakWoodland=grepl('oak woodland',Garden_type),isWetland=grepl('seasonally wet',Garden_type)) #Assigns garden type - clunky, but works
+           isOakWoodland=grepl('oak woodland',Garden_type),isWetland=grepl('seasonally wet',Garden_type)) |> #Assigns garden type - clunky, but works
+    arrange(Scientific_name) #Sorts by name
   
   #Test for duplicate names
   if(any(table(plantList$Scientific_name)>1)){
@@ -150,11 +151,6 @@ cleanReportData <- function(plantListCSV = NA,
     }
     rm(dupPlants,i)
   }
-  
-  #List of non-native plants - also includes ones not found in complete plant list (possibly misidentified)
-  nonNativeSpp <- plantList %>% select(Scientific_name,isNative) %>% 
-    filter(grepl('\\s',Scientific_name)) %>% filter(!isNative) %>% 
-    pull(Scientific_name)
   
   # Load and clean up bee data ------------------------------------
   print('Loading regional bee data - takes some time')
@@ -250,11 +246,7 @@ cleanReportData <- function(plantListCSV = NA,
     st_as_sf(coords=c('Longitude','Latitude')) %>% #Set lon and lat as coordinates
     st_set_crs(4269) %>% #Set coordinate reference system (NAD83)
     st_transform(3643) #Transform to Oregon Lambert system
-  
-  #Common names for bee families
-  commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
-                          common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
-    mutate(plotLab=paste0(Family,'\n(',common,')'))
+
   
   #Check whether species in bee data are found in plant database
   foragePlantMissing <- sort(unique(beeData$ForagePlant[!beeData$ForagePlant %in% plantList$Scientific_name]))
@@ -376,11 +368,19 @@ cleanReportData <- function(plantListCSV = NA,
   
   #If path provided - Write list of missing/present species to csv 
   if(!is.na(missingPlDatCSV)){
-    plantDataSummary <- list('inPlantDatabase'=sort(unique(plantList$Scientific_name)),
+    plantDataSummary <- list('inPlantDatabase'=plantList$Scientific_name,
+                             'hasBloomStart'=plantList$Scientific_name[grepl('\\w',plantList$Bloom_start)],
+                             'hasBloomEnd'=plantList$Scientific_name[grepl('\\w',plantList$Bloom_end)],
+                             'hasCommonName'=plantList$Scientific_name[grepl('\\w',plantList$Common_name )],
+                             'hasLifecycle'=plantList$Scientific_name[grepl('\\w',plantList$Lifecycle)],
+                             'hasOrigin'=plantList$Scientific_name[grepl('\\w',plantList$Origin)],
+                             'hasWeedyStatus'=plantList$Scientific_name[!is.na(plantList$isWeedy)],
+                             'hasNoxiousStatus'=plantList$Scientific_name[!is.na(plantList$isNoxious)],
                              'inBeeForagePlants'=sort(unique(beeData$ForagePlant)),
                              'inINatPlants'=sort(unique(iNatPlDat$scientific_name))
     ) %>% lapply(.,function(x) data.frame('PlantSpp'=x)) %>% bind_rows(.id = 'dataset') %>% 
-      mutate(valCol=TRUE) %>% pivot_wider(names_from=dataset,values_from=valCol,values_fill = FALSE)
+      mutate(valCol=TRUE) %>% pivot_wider(names_from=dataset,values_from=valCol,values_fill = FALSE) |> 
+      arrange(PlantSpp) 
     
     if(sum(apply(plantDataSummary[,-1],1,function(x) any(!x)))>0){
       message(paste0(sum(apply(plantDataSummary[,-1],1,function(x) any(!x))),' plants missing from plant database, bee forage plant records, or iNaturalist records:\n\n'))
@@ -393,7 +393,7 @@ cleanReportData <- function(plantListCSV = NA,
   }
   
   retList <- list('plantList'=plantList,'beeData'=beeData,'iNatPlDat'=iNatPlDat,
-                  'ecoReg'=ecoReg,'iNatProjNames'=iNatProjNames)
+                  'ecoReg'=ecoReg,'iNatProjNames'=iNatProjNames,'famGen'=famGen)
   return(retList)
   
 }

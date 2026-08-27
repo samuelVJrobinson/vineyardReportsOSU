@@ -6,6 +6,7 @@
 #' @param beeDataColumns _Required_ - named character vector with column names from _beeDataCSV_ to use.
 #' @param iNatFolder _Required_ - Folder/subfolders containing vineyard iNaturalist CSV files.
 #' @param reportFolder _Required_ - Folder for writing reports to.
+#' @param reportTitles (Optional) - character vector with names to add to reports. Must be the same length as the number of iNat projects being processed. Uses iNat project name if NA.
 #' @param plDatCSV (Optional) output csv of all plant records. Skips writing if NA.
 #' @param missingPlDatCSV (Optional) output csv of missing plant records. Skips writing if NA.
 #' @param predictedBeesCSV (Optional) output csv of predicted bees for each project. Skips writing if NA.
@@ -40,29 +41,31 @@ makeReports2 <- function(plantListCSV = NA,
                         beeDataColumns = NA,
                         iNatFolder = NA,
                         reportFolder = NA,
+                        reportTitles = NA,
                         plDatCSV = NA,
                         predictedBeesCSV = NA,
                         dataStoragePath = NA,
                         famGenPath = NA
 ){
   
-  # #Debug
-  # devtools::load_all(".") #Load package
-  # plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-05-08.csv"
-  # beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
-  # beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
-  #                    "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
-  #                    "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
-  #                    "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
-  # iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
-  # reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
-  # plDatCSV = NA
-  # missingPlDatCSV = NA
-  # predictedBeesCSV = NA
-  # dataStoragePath = NA
-  # beeAbstractsPath = NA
-  # vy = 6
-  # rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
+  #Debug
+  devtools::load_all(".") #Load package
+  plantListCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\PLANTS_CLEAN_2026-05-08.csv"
+  beeDataCSV = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\workingOccurrences2026_04_01.csv"
+  beeDataColumns = c("CollectorName" = "recordedBy", "Sex" = "sex", "ForagePlant" = "speciesPlant",
+                     "Method" = "samplingProtocol", "Month" = "month", "Day" = "day",
+                     "Year" = "year", "County" = "county", "Genus" = "genus", "Species" = "specificEpithet" ,
+                     "Latitude" = "decimalLatitude", "Longitude" = "decimalLongitude")
+  iNatFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\inatCSVs\\"
+  reportFolder = "C:\\Users\\s_robinson\\Ducks Unlimited Canada\\IWWR Team - Documents\\Sustainable Agriculture\\External Collaborative Projects\\OSU Vineyard Project 2024-26\\stewardshipReports2026\\reportFolder\\"
+  reportTitles = paste0('Report ',LETTERS[1:15])
+  plDatCSV = NA
+  missingPlDatCSV = NA
+  predictedBeesCSV = NA
+  dataStoragePath = NA
+  beeAbstractsPath = NA
+  vy = 6
+  rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
   
   # Preamble ---------------------------
   
@@ -79,12 +82,18 @@ makeReports2 <- function(plantListCSV = NA,
   library(bipartite)
   library(rmarkdown)
   
+  #Run cleanReportData, and write results to local environment
   list2env(
     cleanReportData(plantListCSV = plantListCSV,beeDataCSV = beeDataCSV, 
                     beeDataColumns = beeDataColumns,iNatFolder = iNatFolder,
                     plDatCSV = plDatCSV,missingPlDatCSV = missingPlDatCSV),
     envir = .GlobalEnv
   )
+  
+  #List of non-native plants - also includes ones not found in complete plant list (possibly misidentified)
+  nonNativeSpp <- plantList %>% select(Scientific_name,isNative) %>% 
+    filter(grepl('\\s',Scientific_name)) %>% filter(!isNative) %>% 
+    pull(Scientific_name)
   
   # Make regional and project-level networks ------------------------------------
   print('Creating regional networks')
@@ -239,9 +248,6 @@ makeReports2 <- function(plantListCSV = NA,
   iNatNetworks <- lapply(iNatProjNames,getInatNtwks,vpDat=iNatPlDat,erNtwk=ecoRegNetworks) %>% 
     set_names(iNatProjNames)
   
-  #Cleanup
-  rm(iNatProjNames,useEcoReg,ecoRegStatProvs,ecoRegCountries)
-  
   #Write predicted bees at each iNat project to a csv
   if(!is.na(predictedBeesCSV)){
     lapply(iNatNetworks,function(x){
@@ -262,6 +268,8 @@ makeReports2 <- function(plantListCSV = NA,
   
   # Create reports --------------------
   print(paste0('Creating reports (',length(iNatNetworks),' total)'))
+  
+  if(length(reportTitles)!=length(names(iNatNetworks))) stop(c('reportTitles must have 1 report title per project. ',length(reportTitles),' report titles provided, but ',length(names(iNatNetworks)),' iNat projects present in data.'))
 
   for(vy in 1:length(names(iNatNetworks))){
     
@@ -288,11 +296,12 @@ makeReports2 <- function(plantListCSV = NA,
                output_dir = reportFolder,
                # intermediates_dir = reportFolder, #Doesn't produce maps correctly if specified
                knit_root_dir = reportFolder,
-               params = list(set_title=names(iNatNetworks)[vy]),
+               params = list(iNatProj=names(iNatNetworks)[vy],
+                             set_title=ifelse(length(reportTitles)==1 && is.na(reportTitles),names(iNatNetworks)[vy],reportTitles[vy])),
                envir=new.env(),
                quiet = TRUE
         )  
-      }); beepr::beep(1)
+      })
       
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))

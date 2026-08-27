@@ -33,6 +33,7 @@ header-includes:
   - \usepackage[T1]{fontenc}
   
 params:
+  iNatProj: "NULL"
   set_title: "NULL"
 geometry: margin=2cm
 title: ""
@@ -73,7 +74,7 @@ if(any(sapply(params,function(x) x=='NULL'))){
 #Load vineyard plant data from iNaturalist records
 
 #Plants from focal project
-iNatPlDat_vy <- filter(iNatPlDat, vineyard==params$set_title)
+iNatPlDat_vy <- filter(iNatPlDat, vineyard==params$iNatProj)
 
 # #Debugging: param is a reserved word in this context
 # iNatPlDat_vy <- filter(iNatPlDat, vineyard=='liz-shen')
@@ -107,7 +108,7 @@ plantScoresSpp <- getPlGenScores(mat = ecoRegNetworks[[ecoRegName]]$ntwk_all, #R
   left_join(plantList,by=c('PlantGenus'='Scientific_name')) %>%
   filter(isNative) %>% 
   filter(!is.na(Common_name)) %>% #Removes genSpp not found in plant list - mostly errors from the recorded plants in the bee data, I think
-  mutate(newBeeFam=sapply(strsplit(newSpp,split = ', '),function(x){ #Which families are most benefitted?
+  mutate(newBeeFam=sapply(strsplit(newSpp,split = ', '),function(x){ #Which families are most benefited?
     paste0(unique(famGen$lookupFam[famGen$Genus %in% gsub(' .*$','',x)]),collapse=', ')
     }))
 
@@ -165,6 +166,13 @@ beeDivRange <- sapply(iNatNetworks,function(x,y) ifelse(x$ecoregNtwk_summary$eco
        y=ecoRegName)
 beeDivRange <- unique(unname(beeDivRange[!is.na(beeDivRange)])) 
 
+  
+#Common names for bee families
+commonFam <- data.frame(Family=factor(c('Andrenidae','Apidae','Colletidae','Halictidae','Megachilidae')),
+                        common=c('Mining bees','Bumble bees and Allies','Polyester bees','Sweat bees','Leaf-cutting bees')) %>%
+  mutate(plotLab=paste0(Family,'\n(',common,')'))
+
+
 ```
 
 \newgeometry{margin=2cm,top=2in}
@@ -197,7 +205,7 @@ provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLog
 \begin{tikzpicture}[remember picture,overlay]
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
     \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=1cm] at (current page.north west){\includegraphics[height=2.5cm]{../extdata/stewardship_report_header.png}};
-    \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.25cm,xshift=1cm,align=left] at (current page.north west){\textsc{`r gsub('_','-',params$set_title)` 2025}};
+    \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.25cm,xshift=1cm,align=left] at (current page.north west){\textsc{`r gsub('_','-',params$set_title)`}};
     \node[anchor=north east,rectangle,,yshift=-0.5cm,xshift=-0.5cm] at (current page.north east){\includegraphics[height=4cm]{../extdata/blackwhite_beestewards_logo.png}};
     \matrix[matrix anchor=south west, anchor=base, yshift=0.5cm,xshift=1cm, row sep=0pt, column sep=1cm] at (current page.south west) {
       \node{\includegraphics[height=2cm]{../extdata/OSU_ES-MM_horizontal_2C_O_over_B.png}}; & `r provLogoTeX` \\
@@ -370,7 +378,7 @@ ggplot() + geom_stars(data=st_rgb(b))+
 \clearpage
 \section{Plant recommendations}
 
-There are a few native bee plants from the Willamette Valley region you are currently missing. Adding these species of plants will increase the estimated number of bees at your property from \textbf`r as.character(sum(suppBeeSpp_new$cat=='existing'))` to \textbf`r nrow(suppBeeSpp_new)` species of bees: \large 
+There are a few native bee plants from the Willamette Valley region you are currently missing. Adding these species of plants will increase the estimated number of bees at your property from \textbf{`r as.character(sum(suppBeeSpp_new$cat=='existing'))`} to \textbf{`r nrow(suppBeeSpp_new)`} species of bees: \large 
 
 \vspace{0.5cm}
 
