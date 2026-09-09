@@ -43,9 +43,9 @@ makeReports2 <- function(plantListCSV = NA,
                         reportFolder = NA,
                         reportTitles = NA,
                         plDatCSV = NA,
+                        missingPlDatCSV = NA,
                         predictedBeesCSV = NA,
-                        dataStoragePath = NA,
-                        famGenPath = NA
+                        dataStoragePath = NA
 ){
   
   # #Debugging parameters
@@ -64,9 +64,9 @@ makeReports2 <- function(plantListCSV = NA,
   # predictedBeesCSV = NA
   # dataStoragePath = NA
   # beeAbstractsPath = NA
-  # vy = 6
+  # vy = 1
   # rmdPath = "C:\\Users\\s_robinson\\OneDrive - Ducks Unlimited Canada\\Documents\\Projects\\Git Repos\\vineyardReportsOSU\\inst\\rmdTemplates\\ecoregion-report-template.Rmd"
-  
+
   # Preamble ---------------------------
   
   library(ggplot2)
