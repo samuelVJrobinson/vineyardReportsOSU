@@ -185,7 +185,7 @@ provNms <- strsplit(ecoRegNetworks[[ecoRegName]]$ProvStateName,',')[[1]] #Get pr
 provLogoPaths <- list.files(system.file('extdata',package='vineyardReportsOSU',mustWork = TRUE),
                             pattern=".*BeeAtlas-Logo.png$",full.names = FALSE) #Get paths to logos
 provLogoPaths <- provLogoPaths[grepl(paste0("(",paste0(provNms,collapse = '|'),")"),provLogoPaths)] #Filter paths
-provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLogoPaths,"}};",collapse=' & ') #LaTex code to render logos as part of a tikzpicture matrix
+provLogoTeX <- paste0("\\node{\\includegraphics[height=1.8cm]{../extdata/",provLogoPaths,"}};",collapse=' & ') #LaTex code to render logos as part of a tikzpicture matrix
 
 ##Example LaTeX code --->
     # \matrix[matrix anchor=south west, anchor=base, yshift=0.5cm,xshift=1cm, row sep=0pt, column sep=1cm] at (current page.south west) {
@@ -204,22 +204,25 @@ provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLog
 
 \begin{tikzpicture}[remember picture,overlay]
     \fill[osuRed] (current page.north west) rectangle ([yshift=0cm] current page text area.north  -| current page.east); 
-    \node[anchor=north west,rectangle,,yshift=-0.5cm,xshift=1cm] at (current page.north west){\includegraphics[height=2.5cm]{../extdata/stewardship_report_header.png}};
-    \node[minimum height = 2.3cm,minimum width=8cm,anchor=south west,font=\color{white}\Huge\linespread{1}\selectfont,rectangle,yshift=-5.25cm,xshift=1cm,align=left] at (current page.north west){\textsc{`r gsub('_','-',params$set_title)`}};
-    \node[anchor=north east,rectangle,,yshift=-0.5cm,xshift=-0.5cm] at (current page.north east){\includegraphics[height=4cm]{../extdata/blackwhite_beestewards_logo.png}};
+    \coordinate (bannerleft) at ($(current page.north west)!0.5!(current page text area.north)$); 
+    \coordinate (bannerright) at ($(current page.north west -| current page.east)!0.5! (current page text area.north -| current page.east)$);
+    \node[anchor=center] at ($(bannerleft)!0.1!(bannerright)$){\includegraphics[height=2.5cm]{../extdata/stewardship_report_header.png}};
+    \node[anchor=center] at ($(bannerleft)!0.8!(bannerright)$){\includegraphics[height=3cm]{../extdata/blackwhite_beestewards_logo.png}};
     \matrix[matrix anchor=south west, anchor=base, yshift=0.5cm,xshift=1cm, row sep=0pt, column sep=1cm] at (current page.south west) {
       \node{\includegraphics[height=2cm]{../extdata/OSU_ES-MM_horizontal_2C_O_over_B.png}}; & `r provLogoTeX` \\
     };
     
 \end{tikzpicture}
 
-\vspace{0.2cm}
+<!-- \node[minimum height = 2.3cm,minimum width=8cm,anchor=north, font=\color{black}\Huge\linespread{1}\selectfont,rectangle,align=center] at ($(bannercenter)+(0,-1.5cm)$){\textsc{`r params$set_title`}}; -->
 
-\centering\huge
-
-<!-- \huge 2025 Report for `r params$set_title`  -->
+<!-- \vspace{0.2cm} -->
 
 \raggedright\Large
+
+\begin{center} 
+\textbf{\Huge{`r params$set_title`}}
+\end{center}
 
 \section{Plant inventory}
 
@@ -229,7 +232,12 @@ provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLog
 Out of the `r nrow(iNatPlSpp)` identified plant species from your iNaturalist project, \Large`r nrow(filter(iNatPlSpp,!is.na(N)&quality!='poor'))` \Large are bee-friendly plants. Of these plants:
 ]
 
-\includegraphics[width=2.5cm]{../extdata/purple_flowers.png}
+\begin{tikzpicture} 
+  \node[inner sep=0pt] {
+    \hspace{1.5cm}
+    \includegraphics[height=3.2cm]{../extdata/purple_flowers.png}
+  };
+\end{tikzpicture}
 
 \columnbreak
 
@@ -264,7 +272,7 @@ if(length(unique(iNatPlDat_vy$year))>1){
     mutate(year=factor(year,levels=rev(unique(year)),labels=gsub('in','',rev(unique(year))))) %>%
     ggplot(aes(x=lookupFam,y=n))+
     geom_col(aes(fill=year),col='black')+
-    labs(x=NULL,y='Number of species',fill='Year')+
+    labs(x='Bee Families',y='Number of species',fill='Year')+
     coord_flip()+
     scale_fill_brewer(palette = 'Greys',direction = -1)
   
@@ -274,7 +282,7 @@ if(length(unique(iNatPlDat_vy$year))>1){
     count(lookupFam,.drop=FALSE) %>%
     ggplot(aes(x=lookupFam,y=n))+
     geom_col(col='black',fill='grey20')+
-    labs(x=NULL,y='Number of species')+
+    labs(x='Bee Families',y='Number of species')+
     coord_flip()
 }
 
