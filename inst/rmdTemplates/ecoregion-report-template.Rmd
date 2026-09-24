@@ -77,7 +77,7 @@ if(any(sapply(params,function(x) x=='NULL'))){
 iNatPlDat_vy <- filter(iNatPlDat, vineyard==params$iNatProj)
 
 # #Debugging: param is a reserved word in this context
-# iNatPlDat_vy <- filter(iNatPlDat, vineyard=='applegate_river_farm_osu_bee_stewards')
+# iNatPlDat_vy <- filter(iNatPlDat, vineyard=='dominion_park_bee_plant_inventory')
 
 if(length(unique(iNatPlDat_vy$ecoreg))!=1){
   stop(paste0('Project has ',length(unique(iNatPlDat_vy$ecoreg)),' ecoregions; should be 1'))
@@ -186,7 +186,7 @@ provFound <- sapply(provNms,function(x){ #Checks whether province/state is found
   any(paste0(x,"-BeeAtlas-Logo.png") %in% dir(system.file('extdata',package='vineyardReportsOSU',mustWork = TRUE)))
 })
 if(any(!provFound)){
-  message(paste0("Project ",params$iNatProj," is found in the ",ecoRegName," ecoregion (overlaps ",paste0(provNms,collapse=", "),"), but no Bee Atlas logo exists for: ",paste0(provNms[!provFound],collapse=','),'\nSkipping province/states that have no Bee Atlas logo.'))
+  message(paste0("Project ",params$iNatProj," is found in the ",ecoRegName," ecoregion (overlaps ",paste0(provNms,collapse=", "),"), but no Bee Atlas logo exists for: ",paste0(provNms[!provFound],collapse=','),'\nSkipping logos.'))
   provNms <- provNms[provFound]
 }
 
@@ -194,7 +194,7 @@ provLogoPaths <- unname(sapply(unique(c('Oregon',provNms)),function(nm){ #For Or
   list.files(system.file('extdata',package='vineyardReportsOSU',mustWork = TRUE),
                             pattern=paste0(nm,"-BeeAtlas-Logo.png"),full.names = FALSE) #Get path to logos
 }))
-provLogoTeX <- paste0("\\node{\\includegraphics[height=2.5cm]{../extdata/",provLogoPaths,"}};",collapse=' & ') #LaTex code to render logos as part of a tikzpicture matrix
+provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLogoPaths,"}};",collapse=' & ') #LaTex code to render logos as part of a tikzpicture matrix
 ```
 
 <!-- Draws overlay for title page in the following order: -->
@@ -211,8 +211,8 @@ provLogoTeX <- paste0("\\node{\\includegraphics[height=2.5cm]{../extdata/",provL
     \node[anchor=center] at ($(bannerleft)!0.1!(bannerright)$){\includegraphics[height=2.5cm]{../extdata/stewardship_report_header.png}};
     \node[anchor=center] at ($(bannerleft)!0.8!(bannerright)$){\includegraphics[height=3cm]{../extdata/blackwhite_beestewards_logo.png}};
     \node[anchor=center] at ($(current page.north west) + (0.85\paperwidth,-0.47\paperheight)$){\includegraphics[height=2.5cm]{../extdata/bee.png}};
-    \matrix[matrix anchor=south west, anchor=base, yshift=0.5cm,xshift=1cm, row sep=0pt, column sep=1cm] at (current page.south west) {
-      \node{\includegraphics[height=2cm]{../extdata/OSU_ES-MM_horizontal_2C_O_over_B.png}}; & `r provLogoTeX` \\
+    \matrix[matrix anchor=south west, anchor=base, yshift=-1.5cm,xshift=-0.25cm, row sep=0pt, column sep=0.5cm] at (current page text area.south west) {
+      \node{\includegraphics[height=1.75cm]{../extdata/OSU_ES-MM_horizontal_2C_O_over_B.png}}; & `r provLogoTeX` \\
     };
     
 \end{tikzpicture}

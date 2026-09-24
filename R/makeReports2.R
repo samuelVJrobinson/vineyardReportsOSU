@@ -289,7 +289,7 @@ makeReports2 <- function(plantListCSV = NA,
       #Path to Rmd template
       rmdPath <- system.file('rmdTemplates','ecoregion-report-template.Rmd',package=packageName(),mustWork = TRUE)
     
-      suppressWarnings({
+      # suppressWarnings({
         render(rmdPath,
                output_file = paste0(names(iNatNetworks)[vy],'-report'),
                output_format = "pdf_document",
@@ -301,7 +301,7 @@ makeReports2 <- function(plantListCSV = NA,
                envir=new.env(),
                quiet = TRUE
         )  
-      })
+      # })
       
       #Cleanup
       cln <- file.remove(list.files(dirname(rmdPath),'.*(pdf|log)',full.names = TRUE))
