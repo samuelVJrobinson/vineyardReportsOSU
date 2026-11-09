@@ -197,6 +197,9 @@ provLogoPaths <- unname(sapply(unique(c('Oregon',provNms)),function(nm){ #For Or
 provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLogoPaths,"}};",collapse=' & ') #LaTex code to render logos as part of a tikzpicture matrix
 ```
 
+<!-- Resolve ../extdata image paths from this template's folder, wherever LaTeX runs -->
+\graphicspath{{`r system.file('rmdTemplates',package='vineyardReportsOSU',mustWork = TRUE)`/}}
+
 <!-- Draws overlay for title page in the following order: -->
 <!-- \fill[osuRed] ... = Red rectangle at the top -->
 <!-- Coordinates... -->
@@ -222,7 +225,7 @@ provLogoTeX <- paste0("\\node{\\includegraphics[height=2cm]{../extdata/",provLog
 \vspace{-0.25cm}
 
 \begin{center} 
-\textbf{\Huge{`r params$set_title`}}
+{\Huge\bfseries `r params$set_title`\par}
 \end{center}
 
 \vspace{-0.5cm}
@@ -257,7 +260,7 @@ Out of the `r nrow(iNatPlSpp)` identified plant species from your iNaturalist pr
 
 \section{Bee inventory}
 
-Based on bee and plant records from the `r ifelse(length(provNms)==1,paste0(provNms,' Bee Atlas'),paste0(paste0(provNms[1:(length(provNms)-1)],collapse=', '),', and ',provNms[length(provNms)],' Bee Atlases'))`, we predict that you have \Large`r nrow(suppBeeSpp)` \Large species of bees at your site. `r ifelse(length(beeDivRange)>1,paste0('Similar sites in your ecroegion have ',paste0(range(beeDivRange),collapse=' - '),' species of bees.'),'')`
+Based on bee and plant records from the `r ifelse(length(provNms)==1,paste0(provNms,' Bee Atlas'),paste0(paste0(provNms[1:(length(provNms)-1)],collapse=', '),', and ',provNms[length(provNms)],' Bee Atlases'))`, we predict that you have \Large`r nrow(suppBeeSpp)` \Large species of bees at your site. `r ifelse(length(beeDivRange)>1,paste0('Similar sites in your ecoregion have ',paste0(range(beeDivRange),collapse=' - '),' species of bees.'),'')`
 The species at your site cover `r length(unique(filter(suppBeeSpp_new,cat=='existing')$lookupFam))` out of the 6 bee families found in North America.
 
 ```{r beeFamilyPlot, out.width = '100%', fig.asp=0.35}
@@ -315,7 +318,7 @@ if(length(unique(iNatPlDat_vy$year))>1){
 \section{The \emph{super bee plants} at your site}
 
 \Large
-`r if(nrow(superPl_spp)<4) "We didn't find many super bee plants at your site"`
+`r if(nrow(superPl_spp)<4) "We didn't find many super bee plants at your site."`
 `r if(nrow(superPl_spp)>0) "These plant species are doing the work at your site to support a diverse community of bees."`
 `r if(nrow(superPl_spp)<=0) "We didn't find any \\emph{super bee plants} at your site. This might be because they weren't documented in your iNaturalist project, or because your site has a lot of opportunity for growth! On the next page, we've put together a site-specific list of plant species to take your bee habitat up a notch and expand the list of bees your site can support."`
 
